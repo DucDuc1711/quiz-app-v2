@@ -21,6 +21,12 @@ def create_app():
     from app.routes.auth import auth_bp
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
 
+    from app.routes.play import play_bp
+    app.register_blueprint(play_bp, url_prefix="/api/play")
+
+    from app.routes.uploads import uploads_bp
+    app.register_blueprint(uploads_bp, url_prefix="/api")
+
     from utils import register_error_handlers
     register_error_handlers(app)
 

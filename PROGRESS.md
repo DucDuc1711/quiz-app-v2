@@ -1,13 +1,13 @@
 # TIẾN ĐỘ DỰ ÁN
 
 ## Trạng thái
-- Phase đang làm: P1 (P0 đã xong)
-- Đang làm dở (file và việc kế tiếp): P1 đã hoàn tất, chờ commit rồi sang P2
+- Phase đang làm: P3 (P0, P1, P2 đã xong)
+- Đang làm dở (file và việc kế tiếp): chưa bắt đầu P3
 
 ## Checklist
 - [x] P0 Tài liệu đặc tả
 - [x] P1 Backend nền tảng (models, auth, CLI, seed)
-- [ ] P2 Backend luồng làm bài (play, uploads)
+- [x] P2 Backend luồng làm bài (play, uploads)
 - [ ] P3 Backend giáo viên và admin (CRUD, thư viện, import/export)
 - [ ] P4 Frontend nền và phần học sinh
 - [ ] P5 Frontend giáo viên
