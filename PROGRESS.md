@@ -8,6 +8,12 @@
 - 
 
 
+- Đã sửa lỗi thêm câu hỏi không lưu choices và thiếu validate theo spec (single/multiple/true_false, 2-6 đáp án, độ dài ký tự, ràng buộc đáp án đúng). Áp dụng cho thêm câu hỏi và cập nhật câu hỏi (PUT).
+- Đã cập nhật GET /api/teacher/quizzes/<id> trả về đầy đủ thông tin bộ đề kèm danh sách câu hỏi và đáp án (is_correct).
+- Đã sửa POST /api/play/<token>/next tính và trả `seconds_left` là số (không bị null) ở phase question.
+- Đã sửa POST /api/play/<token>/answer trả 400 kèm thông báo "Thieu question_id hoac choice_ids." nếu thiếu trường.
+- Đã viết test và chạy pytest toàn bộ xanh (dùng DB :memory:).
+
 - Quyết định: Route teacher dùng `teacher_required` (chỉ role teacher), route admin dùng `admin_required` (chỉ role admin). Kiểm tra quyền qua DB tại mỗi request.
 - Thay đổi: Cập nhật các test case để lấy access_token thông qua endpoint thật thay vì tự tạo token thủ công.
 - Đã thêm test hồi quy kiểm tra phân quyền cho giáo viên và admin.

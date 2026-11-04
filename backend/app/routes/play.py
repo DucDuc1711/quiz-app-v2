@@ -263,7 +263,9 @@ def answer(token):
     if attempt.phase != "question":
         return error_response("Chi co the tra loi o cau hoi hien tai.", 409)
 
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True)
+    if data is None or "question_id" not in data or "choice_ids" not in data:
+        return error_response("Thieu question_id hoac choice_ids.", 400)
     question_id = data.get("question_id")
     choice_ids = data.get("choice_ids") or []
 
@@ -359,13 +361,25 @@ def next_question(token):
 
     db.session.commit()
 
+    now = _now()
+    if attempt.question_started_at is None:
+        attempt.question_started_at = now
+        db.session.commit()
+        started_at = now
+    else:
+        started_at = _ensure_aware(attempt.question_started_at)
+
     quiz = attempt.quiz
     q_id = attempt.question_order[attempt.current_index]
     question = Question.query.get(q_id)
     if question is None:
         return error_response("Cau hoi khong ton tai."), 404
 
-    return jsonify(_build_question_payload(attempt, quiz, question, None)), 200
+    time_limit = question.time_limit if question.time_limit is not None else quiz.question_time
+    elapsed = (now - started_at).total_seconds()
+    seconds_left = time_limit - elapsed
+
+    return jsonify(_build_question_payload(attempt, quiz, question, seconds_left)), 200
 
 
 @play_bp.route("/<token>/result", methods=["GET"])

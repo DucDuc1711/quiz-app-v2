@@ -1,9 +1,47 @@
 from flask import Blueprint, request, jsonify, send_file, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, Quiz, Question
+from models import db, Quiz, Question, Choice
 from app.services.exporter import export_results_to_xlsx, export_results_to_csv
 from utils import teacher_required
 import secrets
+def _validate_question_data(data):
+    errors = []
+    q_type = data.get("type")
+    content = data.get("content", "")
+    choices = data.get("choices", [])
+
+    if q_type not in ["single", "multiple", "true_false"]:
+        errors.append("Loại câu hỏi phải là single, multiple hoặc true_false.")
+    
+    if not (1 <= len(str(content)) <= 1000):
+        errors.append("Nội dung câu hỏi từ 1-1000 ký tự.")
+
+    if not (2 <= len(choices) <= 6):
+        errors.append("Số lượng đáp án phải từ 2-6.")
+    
+    for c in choices:
+        c_content = c.get("content", "")
+        if not (1 <= len(str(c_content)) <= 300):
+            errors.append("Nội dung đáp án từ 1-300 ký tự.")
+            break
+
+    correct_choices = [c for c in choices if c.get("is_correct")]
+    if q_type == "true_false":
+        if len(choices) != 2:
+            errors.append("Câu đúng/sai phải có đúng 2 đáp án.")
+        elif {c.get("content") for c in choices} != {"Đúng", "Sai"}:
+            errors.append("Đáp án câu đúng/sai phải là 'Đúng' và 'Sai'.")
+        elif len(correct_choices) != 1:
+            errors.append("Câu đúng/sai phải có đúng 1 đáp án đúng.")
+    elif q_type == "single":
+        if len(correct_choices) != 1:
+            errors.append("Câu hỏi một đáp án phải có đúng 1 đáp án đúng.")
+    elif q_type == "multiple":
+        if len(correct_choices) < 1:
+            errors.append("Câu hỏi nhiều đáp án phải có ít nhất 1 đáp án đúng.")
+
+    return errors
+
 
 teacher_bp = Blueprint('teacher', __name__, url_prefix='/api/teacher')
 
@@ -41,7 +79,49 @@ def get_quizzes():
 def get_quiz(quiz_id):
     current_user_id = int(get_jwt_identity())
     quiz = Quiz.query.filter_by(id=quiz_id, owner_id=current_user_id).first_or_404()
-    return jsonify({"id": quiz.id, "title": quiz.title, "access_code": quiz.access_code})
+    
+    questions_data = []
+    for q in sorted(quiz.questions, key=lambda x: x.order_num):
+        choices_data = []
+        for c in sorted(q.choices, key=lambda x: x.order_num):
+            choices_data.append({
+                "id": c.id,
+                "content": c.content,
+                "is_correct": c.is_correct,
+                "order_num": c.order_num
+            })
+        questions_data.append({
+            "id": q.id,
+            "type": q.type,
+            "content": q.content,
+            "image_url": q.image_url,
+            "explanation": q.explanation,
+            "order_num": q.order_num,
+            "time_limit": q.time_limit,
+            "choices": choices_data
+        })
+
+    return jsonify({
+        "id": quiz.id,
+        "title": quiz.title,
+        "description": quiz.description,
+        "tags": quiz.tags,
+        "access_code": quiz.access_code,
+        "is_open": quiz.is_open,
+        "open_at": quiz.open_at.isoformat() if quiz.open_at else None,
+        "close_at": quiz.close_at.isoformat() if quiz.close_at else None,
+        "question_time": quiz.question_time,
+        "shuffle_questions": quiz.shuffle_questions,
+        "shuffle_choices": quiz.shuffle_choices,
+        "show_ranking": quiz.show_ranking,
+        "allow_retake": quiz.allow_retake,
+        "is_public": quiz.is_public,
+        "source_quiz_id": quiz.source_quiz_id,
+        "created_at": quiz.created_at.isoformat() if quiz.created_at else None,
+        "updated_at": quiz.updated_at.isoformat() if quiz.updated_at else None,
+        "questions": questions_data
+    }), 200
+
 
 @teacher_bp.route('/quizzes/<int:quiz_id>', methods=['DELETE'])
 def delete_quiz(quiz_id):
@@ -58,6 +138,10 @@ def add_question(quiz_id):
     if quiz.attempts:
         return jsonify({"error": "Không thể thêm câu hỏi khi đã có lượt làm bài"}), 409
     data = request.get_json() or {}
+    errors = _validate_question_data(data)
+    if errors:
+        return jsonify({"error": "; ".join(errors)}), 400
+        
     new_q = Question(
         quiz_id=quiz_id,
         type=data.get('type'),
@@ -67,6 +151,16 @@ def add_question(quiz_id):
     )
     db.session.add(new_q)
     db.session.commit()
+    
+    for c in data.get('choices', []):
+        new_c = Choice(
+            question_id=new_q.id,
+            content=c.get('content'),
+            is_correct=c.get('is_correct', False)
+        )
+        db.session.add(new_c)
+    db.session.commit()
+    
     return jsonify({"message": "Thêm câu hỏi thành công", "id": new_q.id}), 201
 
 @teacher_bp.route('/questions/<int:question_id>', methods=['DELETE'])
@@ -78,6 +172,36 @@ def delete_question(question_id):
     db.session.delete(q)
     db.session.commit()
     return jsonify({"message": "Đã xóa câu hỏi"})
+
+@teacher_bp.route('/questions/<int:question_id>', methods=['PUT'])
+def update_question(question_id):
+    current_user_id = int(get_jwt_identity())
+    q = Question.query.join(Quiz).filter(Question.id == question_id, Quiz.owner_id == current_user_id).first_or_404()
+    if q.quiz.attempts:
+        return jsonify({"error": "Không thể sửa câu hỏi khi đã có lượt làm bài"}), 409
+    data = request.get_json() or {}
+    errors = _validate_question_data(data)
+    if errors:
+        return jsonify({"error": "; ".join(errors)}), 400
+
+    q.type = data.get('type')
+    q.content = data.get('content')
+    q.image_url = data.get('image_url')
+    q.time_limit = data.get('time_limit')
+
+    for c in q.choices:
+        db.session.delete(c)
+
+    for c in data.get('choices', []):
+        new_c = Choice(
+            question_id=q.id,
+            content=c.get('content'),
+            is_correct=c.get('is_correct', False)
+        )
+        db.session.add(new_c)
+
+    db.session.commit()
+    return jsonify({"message": "Cập nhật câu hỏi thành công", "id": q.id}), 200
 
 @teacher_bp.route('/quizzes/<int:quiz_id>/results', methods=['GET'])
 def get_results(quiz_id):
