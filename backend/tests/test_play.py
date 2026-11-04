@@ -2,27 +2,9 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch
 
-from app import create_app
 from extensions import db
 from models import User, Quiz, Question, Choice, Attempt, AttemptAnswer
 from app.services.scoring import check_answer, compute_score, compute_time_spent, compute_ranking
-
-
-@pytest.fixture
-def app():
-    app = create_app()
-    app.config["TESTING"] = True
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-
-    with app.app_context():
-        db.create_all()
-        yield app
-        db.drop_all()
-
-
-@pytest.fixture
-def client(app):
-    return app.test_client()
 
 
 def _make_quiz(app_ctx, code="ABC123", allow_retake=False, question_time=30,

@@ -1,20 +1,7 @@
 import pytest
-from app import create_app
 from extensions import db
 from models import Quiz
 from app.services.codes import generate_unique_code
-
-
-@pytest.fixture
-def app():
-    app = create_app()
-    app.config["TESTING"] = True
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-
-    with app.app_context():
-        db.create_all()
-        yield app
-        db.drop_all()
 
 
 def test_generate_unique_code_format(app):

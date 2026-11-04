@@ -15,3 +15,13 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = False  # sẽ thiết lập 24 giờ qua timedelta trong app factory
     CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://127.0.0.1:5173")
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5 MB
+
+
+class TestingConfig(Config):
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    SECRET_KEY = os.environ.get("SECRET_KEY", "test-secret-key-123456789")
+    JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "test-jwt-secret-key-123456789")
+    RATELIMIT_ENABLED = False
+    RATELIMIT_STORAGE_URI = "memory://"
+    WTF_CSRF_ENABLED = False

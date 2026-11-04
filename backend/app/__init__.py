@@ -7,9 +7,15 @@ from config import Config
 from extensions import db, migrate, jwt, cors, limiter
 
 
-def create_app():
+def create_app(config_object=None):
     app = Flask(__name__, instance_path=os.path.join(os.path.dirname(__file__), "..", "instance"))
     app.config.from_object(Config)
+    if config_object:
+        if isinstance(config_object, dict):
+            app.config.update(config_object)
+        else:
+            app.config.from_object(config_object)
+
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
 
     db.init_app(app)

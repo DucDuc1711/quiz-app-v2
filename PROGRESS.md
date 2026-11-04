@@ -18,9 +18,12 @@
 - P0 được tạo thủ công bằng script setup-p0.bat (không qua Cline). Terminal dùng Windows CMD.
 - extensions.py, models.py, utils.py, cli.py đặt tại backend/ root (không phải trong app/) theo cấu trúc thực tế.
 - DATABASE_URL trong .env dùng đường dẫn tuyệt đối do Windows path có khoảng trắng.
+- Đã sửa fixture test: cho `create_app` nhận `config_object` (ví dụ `TestingConfig`) và áp dụng cấu hình trước khi `db.init_app` được gọi. Tạo `backend/tests/conftest.py` tập trung fixture `app` và `client` kèm chốt an toàn `assert app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite:///:memory:")` trước `db.create_all()` và `db.drop_all()`.
 
 ## Lỗi đã biết
-(chưa có)
+- Lỗi fixture test ghi đè / xóa DB thật:
+  - **Nguyên nhân**: `create_app()` gọi `db.init_app(app)` trước khi các test fixture gán `app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"`. Do Flask-SQLAlchemy khởi tạo engine ngay tại `init_app()`, việc gán sau đó bị vô tác dụng và `db.drop_all()` cuối fixture đã xóa sạch các bảng trong CSDL thật (`backend/instance/quiz.db`).
+  - **Cách sửa**: Cập nhật `create_app` hỗ trợ truyền object/dict cấu hình (dùng `TestingConfig` với URI `:memory:` và `TESTING=True`) áp dụng trước `db.init_app(app)`. Chuyển fixture `app` và `client` về `conftest.py` với chốt an toàn assert URI bắt đầu bằng `sqlite:///:memory:` trước mọi thao tác DB.
 
 ## Cách chạy
 - Kích hoạt venv: .venv\Scripts\activate
