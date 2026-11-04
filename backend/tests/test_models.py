@@ -40,6 +40,6 @@ def test_quiz_cascade_delete(app):
         db.session.delete(quiz)
         db.session.commit()
 
-        assert Quiz.query.get(quiz_id) is None
+        assert db.session.get(Quiz, quiz_id) is None
         assert Question.query.filter_by(quiz_id=quiz_id).count() == 0
         assert Choice.query.filter_by(question_id=q.id).count() == 0

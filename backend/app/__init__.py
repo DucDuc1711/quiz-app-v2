@@ -44,9 +44,9 @@ def create_app(config_object=None):
 
     @jwt.user_lookup_loader
     def user_lookup_callback(_jwt_header, jwt_data):
-        from models import User
+        from models import User, db
         identity = jwt_data["sub"]
-        user = User.query.get(identity)
+        user = db.session.get(User, int(identity))
         if user is None or not user.is_active:
             return None
         return user

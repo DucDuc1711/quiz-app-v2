@@ -62,13 +62,22 @@ def test_teacher_add_and_delete_question(client):
     q_resp = client.post(f"/api/teacher/quizzes/{quiz_id}/questions", json={
         "type": "single",
         "content": "Axiit la gi?",
-        "time_limit": 30
+        "time_limit": 30,
+        "choices": [
+            {"content": "A", "is_correct": True},
+            {"content": "B", "is_correct": False}
+        ]
     }, headers=headers)
     assert q_resp.status_code == 201
     q_id = q_resp.get_json()["id"]
 
     del_q_resp = client.delete(f"/api/teacher/questions/{q_id}", headers=headers)
     assert del_q_resp.status_code == 200
+    
+    # Verify deletion
+    get_resp = client.get(f"/api/teacher/quizzes/{quiz_id}", headers=headers)
+    assert get_resp.status_code == 200
+    assert len(get_resp.get_json()["questions"]) == 0
 
 
 def test_teacher_delete_quiz(client):

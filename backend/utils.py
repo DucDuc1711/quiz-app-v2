@@ -1,7 +1,7 @@
 from functools import wraps
 from flask import jsonify
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
-from models import User
+from models import db, User
 
 
 def error_response(message, status_code):
@@ -47,7 +47,7 @@ def teacher_required(fn):
     def wrapper(*args, **kwargs):
         verify_jwt_in_request()
         user_id = get_jwt_identity()
-        user = User.query.get(user_id)
+        user = db.session.get(User, int(user_id))
         if user is None or not user.is_active:
             return jsonify({"error": "Tai khoan khong hop le da bi khoa hoac xoa."}), 401
         if user.role != "teacher":
@@ -61,7 +61,7 @@ def admin_required(fn):
     def wrapper(*args, **kwargs):
         verify_jwt_in_request()
         user_id = get_jwt_identity()
-        user = User.query.get(user_id)
+        user = db.session.get(User, int(user_id))
         if user is None or not user.is_active:
             return jsonify({"error": "Tai khoan khong hop le da bi khoa hoac xoa."}), 401
         if user.role != "admin":

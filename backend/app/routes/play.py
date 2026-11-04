@@ -209,7 +209,7 @@ def state(token):
 
     quiz = attempt.quiz
     q_id = attempt.question_order[attempt.current_index]
-    question = Question.query.get(q_id)
+    question = db.session.get(Question, q_id)
     if question is None:
         return error_response("Cau hoi khong ton tai."), 404
 
@@ -371,7 +371,7 @@ def next_question(token):
 
     quiz = attempt.quiz
     q_id = attempt.question_order[attempt.current_index]
-    question = Question.query.get(q_id)
+    question = db.session.get(Question, q_id)
     if question is None:
         return error_response("Cau hoi khong ton tai."), 404
 

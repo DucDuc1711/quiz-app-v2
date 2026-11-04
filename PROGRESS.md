@@ -28,6 +28,12 @@
 - [ ] P6 Frontend admin
 - [ ] P7 Hoàn thiện (giao diện, điện thoại, kiểm thử, README)
 
+## Việc để lại cho P7
+- Chuyển Query.get() sang db.session.get() để消除 LegacyAPIWarning toàn bộ codebase
+- thống nhất thông báo tiếng Việt có dấu trong auth.py và utils.py (chỉ còn thiếu một vài chuỗi khác)
+- Bổ sung test cho các endpoint còn thiếu (theo spec mục 7)
+- Hoàn thiện coverage cho toàn bộ API endpoints
+
 ## Quyết định / thay đổi so với đặc tả
 - P0 được tạo thủ công bằng script setup-p0.bat (không qua Cline). Terminal dùng Windows CMD.
 - extensions.py, models.py, utils.py, cli.py đặt tại backend/ root (không phải trong app/) theo cấu trúc thực tế.
