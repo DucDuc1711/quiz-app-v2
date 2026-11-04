@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import jsonify, request
+from flask import jsonify
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 from models import User
 
@@ -19,11 +19,11 @@ def register_error_handlers(app):
 
     @app.errorhandler(403)
     def forbidden(e):
-        return jsonify({"error": "Ban khong co quyen thuc thao tac nay."}), 403
+        return jsonify({"error": "Ban khong co quyen thuc hien thao tac nay."}), 403
 
     @app.errorhandler(404)
     def not_found(e):
-        return jsonify({"error": "Khong tim duat tai nguyen yeu cau."}), 404
+        return jsonify({"error": "Khong tim thay tai nguyen yeu cau."}), 404
 
     @app.errorhandler(405)
     def method_not_allowed(e):
@@ -50,8 +50,8 @@ def teacher_required(fn):
         user = User.query.get(user_id)
         if user is None or not user.is_active:
             return jsonify({"error": "Tai khoan khong hop le da bi khoa hoac xoa."}), 401
-        if user.role not in ("teacher", "admin"):
-            return jsonify({"error": "Chi giao vien hoac admin moi duoc phep."}), 403
+        if user.role != "teacher":
+            return jsonify({"error": "Chi giao vien moi duoc phep."}), 403
         return fn(*args, **kwargs)
     return wrapper
 

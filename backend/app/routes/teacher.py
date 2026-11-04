@@ -1,22 +1,21 @@
 from flask import Blueprint, request, jsonify, send_file, Response
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, Quiz, Question
 from app.services.exporter import export_results_to_xlsx, export_results_to_csv
+from utils import teacher_required
 import secrets
 
 teacher_bp = Blueprint('teacher', __name__, url_prefix='/api/teacher')
 
 @teacher_bp.before_request
-@jwt_required()
-def check_teacher():
-    claims = get_jwt()
-    if claims.get('role') != 'teacher':
-        return jsonify({"error": "Quyền hạn không hợp lệ"}), 403
+@teacher_required
+def before_teacher_request():
+    pass
 
 @teacher_bp.route('/quizzes', methods=['POST'])
 def create_quiz():
-    current_user_id = get_jwt_identity()
-    data = request.get_json()
+    current_user_id = int(get_jwt_identity())
+    data = request.get_json() or {}
     if not (5 <= data.get('question_time', 30) <= 600):
         return jsonify({"error": "Thời gian câu hỏi từ 5-600 giây"}), 400
     access_code = secrets.token_urlsafe(4)[:6].upper()
@@ -34,19 +33,19 @@ def create_quiz():
 
 @teacher_bp.route('/quizzes', methods=['GET'])
 def get_quizzes():
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     quizzes = Quiz.query.filter_by(owner_id=current_user_id).all()
     return jsonify([{"id": q.id, "title": q.title, "access_code": q.access_code} for q in quizzes])
 
 @teacher_bp.route('/quizzes/<int:quiz_id>', methods=['GET'])
 def get_quiz(quiz_id):
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     quiz = Quiz.query.filter_by(id=quiz_id, owner_id=current_user_id).first_or_404()
     return jsonify({"id": quiz.id, "title": quiz.title, "access_code": quiz.access_code})
 
 @teacher_bp.route('/quizzes/<int:quiz_id>', methods=['DELETE'])
 def delete_quiz(quiz_id):
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     quiz = Quiz.query.filter_by(id=quiz_id, owner_id=current_user_id).first_or_404()
     db.session.delete(quiz)
     db.session.commit()
@@ -54,11 +53,11 @@ def delete_quiz(quiz_id):
 
 @teacher_bp.route('/quizzes/<int:quiz_id>/questions', methods=['POST'])
 def add_question(quiz_id):
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     quiz = Quiz.query.filter_by(id=quiz_id, owner_id=current_user_id).first_or_404()
     if quiz.attempts:
         return jsonify({"error": "Không thể thêm câu hỏi khi đã có lượt làm bài"}), 409
-    data = request.get_json()
+    data = request.get_json() or {}
     new_q = Question(
         quiz_id=quiz_id,
         type=data.get('type'),
@@ -72,7 +71,7 @@ def add_question(quiz_id):
 
 @teacher_bp.route('/questions/<int:question_id>', methods=['DELETE'])
 def delete_question(question_id):
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     q = Question.query.join(Quiz).filter(Question.id == question_id, Quiz.owner_id == current_user_id).first_or_404()
     if q.quiz.attempts:
         return jsonify({"error": "Không thể xóa câu hỏi khi đã có lượt làm bài"}), 409
@@ -82,13 +81,13 @@ def delete_question(question_id):
 
 @teacher_bp.route('/quizzes/<int:quiz_id>/results', methods=['GET'])
 def get_results(quiz_id):
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     quiz = Quiz.query.filter_by(id=quiz_id, owner_id=current_user_id).first_or_404()
     return jsonify([{"id": a.id, "student_name": a.student_name, "score": a.score, "status": a.status} for a in quiz.attempts])
 
 @teacher_bp.route('/quizzes/<int:quiz_id>/stats', methods=['GET'])
 def get_stats(quiz_id):
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     quiz = Quiz.query.filter_by(id=quiz_id, owner_id=current_user_id).first_or_404()
     total = len(quiz.attempts)
     avg_score = sum(a.score for a in quiz.attempts) / total if total > 0 else 0
@@ -96,7 +95,7 @@ def get_stats(quiz_id):
 
 @teacher_bp.route('/quizzes/<int:quiz_id>/export', methods=['GET'])
 def export_results(quiz_id):
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     quiz = Quiz.query.filter_by(id=quiz_id, owner_id=current_user_id).first_or_404()
     fmt = request.args.get('format', 'xlsx')
     if fmt == 'xlsx':
@@ -110,4 +109,6 @@ def export_results(quiz_id):
 def get_library():
     quizzes = Quiz.query.filter_by(is_public=True).all()
     return jsonify([{"id": q.id, "title": q.title, "owner": q.owner.username} for q in quizzes])
+
+
 

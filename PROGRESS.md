@@ -2,17 +2,21 @@
 
 ## Trạng thái
 - Phase đang làm: P3 (P0, P1, P2 đã xong)
-- [x] P3 Backend giáo viên và admin (CRUD, thư viện, import/export, kiểm thử)
+- 
 
-- Đang làm dở (file và việc kế tiếp): chưa bắt đầu P3
-- [ ] P3 Backend giáo viên và admin (đã khởi tạo khung route và service)
+- đang sửa lỗi p3
+- 
 
+
+- Quyết định: Route teacher dùng `teacher_required` (chỉ role teacher), route admin dùng `admin_required` (chỉ role admin). Kiểm tra quyền qua DB tại mỗi request.
+- Thay đổi: Cập nhật các test case để lấy access_token thông qua endpoint thật thay vì tự tạo token thủ công.
+- Đã thêm test hồi quy kiểm tra phân quyền cho giáo viên và admin.
 
 ## Checklist
 - [x] P0 Tài liệu đặc tả
 - [x] P1 Backend nền tảng (models, auth, CLI, seed)
 - [x] P2 Backend luồng làm bài (play, uploads)
-- [ ] P3 Backend giáo viên và admin (CRUD, thư viện, import/export)
+- [x] P3 Backend giáo viên và admin (CRUD, thư viện, import/export)
 - [ ] P4 Frontend nền và phần học sinh
 - [ ] P5 Frontend giáo viên
 - [ ] P6 Frontend admin
