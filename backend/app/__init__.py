@@ -33,6 +33,12 @@ def create_app(config_object=None):
     from app.routes.uploads import uploads_bp
     app.register_blueprint(uploads_bp, url_prefix="/api")
 
+    from app.routes.teacher import teacher_bp
+    app.register_blueprint(teacher_bp)
+
+    from app.routes.admin import admin_bp
+    app.register_blueprint(admin_bp)
+
     from utils import register_error_handlers
     register_error_handlers(app)
 

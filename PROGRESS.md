@@ -2,7 +2,11 @@
 
 ## Trạng thái
 - Phase đang làm: P3 (P0, P1, P2 đã xong)
+- [x] P3 Backend giáo viên và admin (CRUD, thư viện, import/export, kiểm thử)
+
 - Đang làm dở (file và việc kế tiếp): chưa bắt đầu P3
+- [ ] P3 Backend giáo viên và admin (đã khởi tạo khung route và service)
+
 
 ## Checklist
 - [x] P0 Tài liệu đặc tả
