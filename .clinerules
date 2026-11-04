@@ -1,0 +1,13 @@
+# Quy tắc cho Quiz App v2
+
+- Đầu mỗi task: đọc PROJECT_SPEC.md và PROGRESS.md rồi mới làm.
+- Chỉ làm trong thư mục dự án này.
+- Terminal trên máy này là Windows CMD. Không dùng cú pháp bash hay PowerShell: không dùng `ls -la`, `export`, `source`, không dùng dấu nháy đơn. Đường dẫn có khoảng trắng phải để trong nháy kép, đổi thư mục dùng `cd /d "..."`. Chạy từng lệnh riêng nếu không chắc về `&&`.
+- Chỉ làm đúng phase đang được giao, không làm trước phase sau. Nếu đặc tả thiếu hoặc mâu thuẫn, hỏi tôi một câu ngắn thay vì tự đoán.
+- Stack cố định theo đặc tả: không thêm Tailwind, shadcn, TypeScript hay framework khác.
+- Giao diện và thông báo lỗi bằng tiếng Việt; tên hàm, biến, file bằng tiếng Anh; comment tiếng Việt khi cần.
+- Không dùng v-html. Không ghi secret vào code. Không commit file .env.
+- Môi trường Windows: lệnh phải chạy được trên CMD (ví dụ .venv\Scripts\activate).
+- Làm theo bước nhỏ, mỗi file viết hoàn chỉnh. Sau mỗi bước lớn, cập nhật mục "Đang làm dở" trong PROGRESS.md. Khi thấy sắp hết ngữ cảnh hoặc token, dừng ngay và cập nhật PROGRESS.md (file nào đang dở, việc kế tiếp là gì).
+- Cuối mỗi phase: chạy kiểm tra (pytest hoặc npm run build), đánh dấu checklist, git commit.
+- Khi làm giao diện: đọc .agents/skills/ui-ux-pro-max/SKILL.md; mọi style tập trung trong frontend/src/assets/theme.css.
