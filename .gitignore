@@ -16,3 +16,6 @@ backend/uploads/
 # Hệ điều hành / editor
 .DS_Store
 Thumbs.db
+# Thu muc tam khi test tay
+tmp/
+*.log
