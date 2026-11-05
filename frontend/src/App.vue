@@ -9,7 +9,7 @@ auth.init()
 
 const userLabel = computed(() => {
   if (!auth.user) return null
-  return auth.isAdmin ? 'Admin (' + auth.user.username + ')' : 'Giao vien (' + auth.user.username + ')'
+  return auth.isAdmin ? 'Admin (' + auth.user.username + ')' : 'Giáo viên (' + auth.user.username + ')'
 })
 
 onMounted(() => {
@@ -37,11 +37,11 @@ function logout() {
       <div class="q-container q-inner">
         <div class="q-brand" @click="router.push('/')"><span class="q-mark">Q</span>uiz App</div>
         <nav class="q-nav-links">
-          <a class="q-btn q-btn-outline" :class="{ 'q-btn-primary': $route.path === '/' }" @click="router.push('/')">Trang chu</a>
+          <a class="q-btn q-btn-outline" :class="{ 'q-btn-primary': $route.path === '/' }" @click="router.push('/')">Trang chủ</a>
           <span v-if="auth.isAuthenticated" class="q-text-soft">{{ userLabel }}</span>
-          <a v-if="auth.isAuthenticated" class="q-btn q-btn-danger" @click="logout">Dang xuat</a>
-          <a v-if="!auth.isAuthenticated" class="q-btn q-btn-outline" @click="router.push('/teacher/login')">Dang nhap giao vien</a>
-          <a v-if="!auth.isAuthenticated" class="q-btn q-btn-outline" @click="router.push('/admin/login')">Dang nhap admin</a>
+          <a v-if="auth.isAuthenticated" class="q-btn q-btn-danger" @click="logout">Đăng xuất</a>
+          <a v-if="!auth.isAuthenticated" class="q-btn q-btn-outline" @click="router.push('/teacher/login')">Đăng nhập giáo viên</a>
+          <a v-if="!auth.isAuthenticated" class="q-btn q-btn-outline" @click="router.push('/admin/login')">Đăng nhập admin</a>
         </nav>
       </div>
     </header>
@@ -53,7 +53,7 @@ function logout() {
       </router-view>
     </main>
     <footer class="q-footer">
-      Quiz App &#8212; demo thi trac nghiem &middot; chay local tren may tinh
+      Quiz App &#8212; demo thi trắc nghiệm &middot; chạy local trên máy tính
     </footer>
   </div>
 </template>

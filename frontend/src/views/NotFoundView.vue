@@ -5,8 +5,8 @@ const router = useRouter()
 
 <template>
   <div class="q-state">
-    <div class="q-state-title">404 - Trang khong ton tai</div>
-    <div class="q-text-soft">Duong dan ban dang xem khong co trong he thong.</div>
-    <button class="q-btn q-btn-primary mt-3" @click="router.push('/')">Ve trang chu</button>
+    <div class="q-state-title">404 - Trang không tồn tại</div>
+    <div class="q-text-soft">Đường dẫn bạn đang xem không có trong hệ thống.</div>
+    <button class="q-btn q-btn-primary mt-3" @click="router.push('/')">Về trang chủ</button>
   </div>
 </template>

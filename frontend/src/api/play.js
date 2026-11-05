@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-// Các endpoint /play KHONG su dung JWT: tao instance axios chua interceptor token.
+// Các endpoint /play KHÔNG dùng JWT: tạo instance axios chưa interceptor token.
 const api = axios.create({
   baseURL: '/api',
 })

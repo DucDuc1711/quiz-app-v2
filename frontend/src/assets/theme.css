@@ -1,7 +1,7 @@
 /* Quiz App v2 — frontend/src/assets/theme.css
-   He thong bien CSS va co so style. Tat cac bien, mau, bo goc, hieu ung o day.
-   Thiet ke: desktop-first 1280px, con responsive 768px va 360px.
-   Mau xanh la va do DUOC DU TRU CHO trang thai dung/sai — KHONG dung cho the dap an thuong.
+   Hệ thống biến CSS và cơ sở style. Tất cả biến, màu, bo góc, hiệu ứng ở đây.
+   Thiết kế: desktop-first 1280px, còn responsive 768px và 360px.
+   Màu xanh lá và đỏ DUỢC DU TRỮ CHO trạng thái đúng/sai — KHÔNG dùng cho thẻ đáp án thường.
 */
 
 :root {

@@ -78,7 +78,7 @@ async function loadState() {
     }
     cdStart(d.seconds_left ?? d.time_limit)
   } catch (e) {
-    err.value = e.response && e.response.data && e.response.data.error ? e.response.data.error : 'Khong lay duoc trang thai cau hoi.'
+    err.value = e.response && e.response.data && e.response.data.error ? e.response.data.error : 'Không lấy được trạng thái câu hỏi.'
   } finally {
     loadingState.value = false
   }
@@ -115,7 +115,7 @@ async function submitAnswer(ids) {
     isLast.value = res.data.is_last
     cdStop()
   } catch (e) {
-    err.value = e.response && e.response.data && e.response.data.error ? e.response.data.error : 'Gui dap an that bai. Vui long thu lai.'
+    err.value = e.response && e.response.data && e.response.data.error ? e.response.data.error : 'Gửi đáp án thất bại. Vui lòng thử lại.'
   } finally {
     answering.value = false
   }
@@ -145,7 +145,7 @@ async function nextQuestion() {
     feedback.value = null
     cdStart(res.data.seconds_left ?? res.data.time_limit)
   } catch (e) {
-    err.value = e.response && e.response.data && e.response.data.error ? e.response.data.error : 'Khong lay duoc cau tiep theo.'
+    err.value = e.response && e.response.data && e.response.data.error ? e.response.data.error : 'Không lấy được câu tiếp theo.'
   } finally {
     answering.value = false
   }
@@ -198,18 +198,18 @@ function onBeforeUnload(e) {
   <div class="q-play-wrap">
     <div v-if="loadingState" class="q-state">
       <div class="q-spinner"></div>
-      <div class="q-state-title">Dang tai cau hoi...</div>
+      <div class="q-state-title">Đang tải câu hỏi...</div>
     </div>
     <div v-else-if="err" class="q-state">
-      <div class="q-state-title">Co loi xay ra</div>
+      <div class="q-state-title">Có lỗi xảy ra</div>
       <div class="q-text-soft">{{ err }}</div>
-      <button class="q-btn q-btn-primary mt-3" @click="loadState">Thu lai</button>
+      <button class="q-btn q-btn-primary mt-3" @click="loadState">Thử lại</button>
     </div>
     <div v-else class="q-play-card">
       <div class="q-play-top">
         <div class="q-play-progress">
-          <div class="q-text-soft">Cau hoi</div>
-          <div class="q-play-counter">Cau <span style="color: var(--q-brand); font-weight: 700">{{ index + 1 }}</span> / {{ total }}</div>
+          <div class="q-text-soft">Câu hỏi</div>
+          <div class="q-play-counter">Câu <span style="color: var(--q-brand); font-weight: 700">{{ index + 1 }}</span> / {{ total }}</div>
         </div>
         <div class="q-countdown-col">
           <CountdownRing :seconds="seconds" :limit="timeLimit" />
@@ -235,18 +235,18 @@ function onBeforeUnload(e) {
           />
         </div>
         <div v-if="feedback" class="q-feedback" :class="{ 'q-feedback--ok': feedback.is_correct, 'q-feedback--bad': !feedback.is_correct && !feedback.timed_out, 'q-feedback--timeout': feedback.timed_out }">
-          <span class="q-feedback-icon">{{ feedback.timed_out ? 'Het gio!' : (feedback.is_correct ? 'Chinh xac!' : 'Sai roi!') }}</span>
+          <span class="q-feedback-icon">{{ feedback.timed_out ? 'Hết giờ!' : (feedback.is_correct ? 'Chính xác!' : 'Sai rồi!') }}</span>
           <div v-if="feedback.explanation" class="q-feedback-expl">{{ feedback.explanation }}</div>
         </div>
         <div v-if="phase === 'feedback'" class="q-actions">
-          <button class="q-btn q-btn-primary q-btn-full" @click="nextQuestion">{{ isLast ? 'Xem ket qua' : 'Cau tiep' }}</button>
+          <button class="q-btn q-btn-primary q-btn-full" @click="nextQuestion">{{ isLast ? 'Xem kết quả' : 'Câu tiếp' }}</button>
         </div>
         <div v-if="phase === 'question'" class="q-hint">
-          <span>1-6 / A-F: chon</span>
-          <span v-if="question.type === 'multiple'">&#8226; Enter: chot dap an</span>
+          <span>1-6 / A-F: chọn</span>
+          <span v-if="question.type === 'multiple'">&#8226; Enter: chốt đáp án</span>
         </div>
         <button v-if="question.type === 'multiple' && phase === 'question'" class="q-btn q-btn-outline q-commit mt-3" @click="commitAnswer" :disabled="selected.length === 0">
-          Chot dap an
+          Chốt đáp án
         </button>
       </div>
     </div>
