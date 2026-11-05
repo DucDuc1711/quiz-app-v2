@@ -18,11 +18,14 @@
 - Thay đổi: Cập nhật các test case để lấy access_token thông qua endpoint thật thay vì tự tạo token thủ công.
 - Đã thêm test hồi quy kiểm tra phân quyền cho giáo viên và admin.
 
+## Dang lam do
+- P3: bo sung test giao vien va admin. Da them them cac route con thieu trong spec muc 7 (teacher: PUT quiz da them, regenerate-code, duplicate, publish, questions/order da duoc implement them. Con thieu: import, import-template, library/<id>, clone, attempts CRUD, stats chi tiet, export xlsx/csv. Test teacher du bo sung qua them 40+ test case. Admin chua du implement).
+
 ## Checklist
 - [x] P0 Tài liệu đặc tả
 - [x] P1 Backend nền tảng (models, auth, CLI, seed)
 - [x] P2 Backend luồng làm bài (play, uploads)
-- [x] P3 Backend giáo viên và admin (CRUD, thư viện, import/export)
+- [ ] P3 Backend giáo viên và admin (CRUD, thư viện, import/export)
 - [ ] P4 Frontend nền và phần học sinh
 - [ ] P5 Frontend giáo viên
 - [ ] P6 Frontend admin
