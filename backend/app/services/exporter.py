@@ -12,7 +12,7 @@ def sanitize_cell(value):
 def export_results_to_xlsx(attempts):
     wb = Workbook()
     ws = wb.active
-    ws.append(["Tên học sinh", "Điểm", "Số câu đúng", "Tổng câu", "Thời gian (s)", "Số lần rời tab", "Trạng thái", "Thời điểm nộp"])
+    ws.append(["Ten hoc sinh", "Diem", "So cau dung", "Tong cau", "Thoi gian (s)", "So lan roi tab", "Trang thai", "Thoi diem nop"])
     for a in attempts:
         submitted_at = a.finished_at.strftime("%Y-%m-%d %H:%M:%S") if getattr(a, "finished_at", None) else ""
         ws.append([
@@ -35,7 +35,7 @@ def export_results_to_xlsx(attempts):
 def export_results_to_csv(attempts):
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Tên học sinh", "Điểm", "Số câu đúng", "Tổng câu", "Thời gian (s)", "Số lần rời tab", "Trạng thái", "Thời điểm nộp"])
+    writer.writerow(["Ten hoc sinh", "Diem", "So cau dung", "Tong cau", "Thoi gian (s)", "So lan roi tab", "Trang thai", "Thoi diem nop"])
     for a in attempts:
         submitted_at = a.finished_at.strftime("%Y-%m-%d %H:%M:%S") if getattr(a, "finished_at", None) else ""
         writer.writerow([

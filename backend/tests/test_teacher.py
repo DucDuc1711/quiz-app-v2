@@ -1,11 +1,11 @@
+import io
+import re
 import uuid
 from datetime import datetime, timezone
 
 from openpyxl import load_workbook
 from extensions import db
 from models import Attempt, AttemptAnswer, Question, Quiz
-
-import pytest
 
 import pytest
 
@@ -151,7 +151,7 @@ def _add_attempts(app, quiz_id, attempts_data, question_ids=None):
                 ))
             objs.append(a)
         db.session.commit()
-        return objs
+        return [o.id for o in objs]
 
 
 def test_teacher_update_quiz(client):
@@ -184,7 +184,7 @@ def test_teacher_quiz_isolation_404(client):
 
 
 def test_teacher_regenerate_code(client):
-    token = get_teacher_token(client, username="rc1", email="rc1@example.com")
+    token = get_teacher_token(client, username="rc01", email="rc1@example.com")
     quiz_id = _create_quiz(client, token)
     before = client.get(f"/api/teacher/quizzes/{quiz_id}", headers=_auth_headers(token)).get_json()["access_code"]
     resp = client.post(f"/api/teacher/quizzes/{quiz_id}/regenerate-code", headers=_auth_headers(token))
@@ -280,11 +280,11 @@ def test_teacher_import_xlsx(client):
     token = get_teacher_token(client, username="imp1", email="imp1@example.com")
     quiz_id = _create_quiz(client, token)
     xlsx = _make_xlsx([
-        ["Cau hoi", "Loai", "Dap an A", "Dap an B", "Dap an C", "Dap an D", "Dap an E", "Dap an F", "Dap an dung", "Giai thich", "Thoi gian (giay)"],
-        ["", "1 dap an", "A", "B", "", "", "", "", "A", "", 30],
-        ["2+2 bang may?", "1 dap an", "3", "4", "", "", "", "", "A,C", "", 30],
-        ["Thu dau Viet Nam la gi?", "1 dap an", "Ha Noi", "TP.HCM", "Da Nang", "", "", "", "A", "Noi dung giai thich", 30],
-        ["Mot cai gi do?", "nhieu dap an", "X", "Y", "", "", "", "", "A,B", "", 30],
+        ["Câu hỏi", "Loại (1 đáp án / nhiều đáp án / đúng-sai)", "Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D", "Đáp án E", "Đáp án F", "Đáp án đúng", "Giải thích", "Thời gian (giây)"],
+        ["", "1 đáp án", "A", "B", "", "", "", "", "A", "", 30],
+        ["2+2 bằng mấy?", "1 đáp án", "3", "4", "", "", "", "", "A,C", "", 30],
+        ["Thủ đô của Việt Nam là gì?", "1 đáp án", "Hà Nội", "TP.HCM", "Đà Nẵng", "", "", "", "A", "Nội dung giải thích", 30],
+        ["Một cái gì đó?", "nhiều đáp án", "X", "Y", "", "", "", "", "A,B", "", 30],
     ])
     resp = client.post(f"/api/teacher/quizzes/{quiz_id}/import",
                        data={"file": (xlsx, "nhap.xlsx")}, headers=_auth_headers(token))
@@ -300,8 +300,8 @@ def test_teacher_import_xlsx(client):
 def test_teacher_import_csv(client):
     token = get_teacher_token(client, username="imp2", email="imp2@example.com")
     quiz_id = _create_quiz(client, token)
-    csv_content = ("Cau hoi,Loai,Dap an A,Dap an B,Dap an C,Dap an D,Dap an E,Dap an F,Dap an dung,Giai thich,Thoi gian (giay)\n"
-                   "Sao cua Viet Nam la gi?,1 dap an,Da Nang,Ha Noi,TP.HCM,,,,A,,30\n"
+    csv_content = ("Câu hỏi,Loại (1 đáp án / nhiều đáp án / đúng-sai),Đáp án A,Đáp án B,Đáp án C,Đáp án D,Đáp án E,Đáp án F,Đáp án đúng,Giải thích,Thời gian (giây)\n"
+                   "Sao của Việt Nam là gì?,1 đáp án,Đà Nẵng,Hà Nội,TP.HCM,,,,A,,30\n"
                    ",\n")
     resp = client.post(f"/api/teacher/quizzes/{quiz_id}/import",
                        data={"file": (io.BytesIO(csv_content.encode("utf-8-sig")), "nhap.csv")},
@@ -318,6 +318,20 @@ def test_teacher_import_template(client):
     assert resp.status_code == 200
     assert "spreadsheetml.sheet" in (resp.headers.get("Content-Type") or "")
     disp = resp.headers.get("Content-Disposition") or ""
+    assert "attachment" in disp and "import-template.xlsx" in disp
+
+    # Roundtrip: import chính file mẫu vừa tải về phải chạy được
+    quiz_id = _create_quiz(client, token)
+    resp2 = client.post(f"/api/teacher/quizzes/{quiz_id}/import",
+                        data={"file": (io.BytesIO(resp.data), "import_template.xlsx")},
+                        headers=_auth_headers(token))
+    assert resp2.status_code == 200, resp2.get_json()
+    data2 = resp2.get_json()
+    assert data2["imported"] >= 1
+    assert data2["errors"] == [], data2["errors"]
+
+    # Không token → 401
+    assert client.get("/api/teacher/import-template").status_code == 401
 
 
 def test_teacher_library_public_search_tag_page(client):
@@ -382,10 +396,6 @@ def test_teacher_library_clone(client):
 
     priv = _create_quiz(client, token_a, title="Bi mat", is_public=False)
     assert client.post(f"/api/teacher/library/{priv}/clone", headers=_auth_headers(token_b)).status_code == 404
-    assert "attachment" in disp and "import-template.xlsx" in disp
-    resp_no = client.get("/api/teacher/import-template")
-    assert resp_no.status_code == 401
-    assert resp.status_code == 200
     quiz_id = _create_quiz(client, token_a)
     headers_b = _auth_headers(token_b)
     assert client.get(f"/api/teacher/quizzes/{quiz_id}", headers=headers_b).status_code == 404
@@ -407,7 +417,7 @@ def test_teacher_quizzes_attempts(client, app):
 
 
 def test_teacher_stats_ti_le_sai(client, app):
-    token = get_teacher_token(client, username="st1", email="st1@example.com")
+    token = get_teacher_token(client, username="st01", email="st1@example.com")
     quiz_id = _create_quiz(client, token)
     q1 = _add_question(client, token, quiz_id, content="Cau 1")
     q2 = _add_question(client, token, quiz_id, content="Cau 2")
@@ -428,7 +438,7 @@ def test_teacher_stats_ti_le_sai(client, app):
 
 
 def test_teacher_export_xlsx_and_csv(client, app):
-    token = get_teacher_token(client, username="ex1", email="ex1@example.com")
+    token = get_teacher_token(client, username="ex01", email="ex1@example.com")
     quiz_id = _create_quiz(client, token)
     _add_attempts(app, quiz_id, [
         {"student_name": "=1+1", "score": 9.0, "correct": 4, "total": 5},
@@ -442,7 +452,7 @@ def test_teacher_export_xlsx_and_csv(client, app):
     wb = load_workbook(io.BytesIO(resp.data))
     ws = wb.active
     rows = list(ws.iter_rows(values_only=True))
-    assert rows[0] == ["Ten hoc sinh", "Diem", "So cau dung", "Tong cau", "Thoi gian (s)", "So lan roi tab", "Trang thai", "Thoi diem nop"]
+    assert list(rows[0]) == ["Ten hoc sinh", "Diem", "So cau dung", "Tong cau", "Thoi gian (s)", "So lan roi tab", "Trang thai", "Thoi diem nop"]
     assert rows[1][0] == "'=1+1"
     assert rows[1][1] == 9.0
 
@@ -455,19 +465,19 @@ def test_teacher_export_xlsx_and_csv(client, app):
 
 
 def test_teacher_delete_one_attempt(client, app):
-    token = get_teacher_token(client, username="da1", email="da1@example.com")
+    token = get_teacher_token(client, username="da01", email="da1@example.com")
     quiz_id = _create_quiz(client, token)
     objs = _add_attempts(app, quiz_id, [
         {"student_name": "A", "score": 5.0, "correct": 1, "total": 1},
         {"student_name": "B", "score": 10.0, "correct": 1, "total": 1},
     ], [])
-    aid_a = objs[0].id
+    aid_a = objs[0]
     resp = client.delete(f"/api/teacher/attempts/{aid_a}", headers=_auth_headers(token))
     assert resp.status_code == 200
     get_resp = client.get(f"/api/teacher/quizzes/{quiz_id}/attempts", headers=_auth_headers(token))
     assert len(get_resp.get_json()) == 1
     assert get_resp.get_json()[0]["student_name"] == "B"
-    token_b = get_teacher_token(client, username="da2", email="da2@example.com")
+    token_b = get_teacher_token(client, username="da02", email="da2@example.com")
     assert client.delete(f"/api/teacher/attempts/{aid_a}", headers=_auth_headers(token_b)).status_code == 404
 
 

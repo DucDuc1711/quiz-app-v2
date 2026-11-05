@@ -1,7 +1,9 @@
-from flask import Blueprint, request, jsonify, send_file, Response
+from flask import Blueprint, request, jsonify, send_file, Response, abort
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, Quiz, Question, Choice
+from sqlalchemy import or_
+from models import db, Quiz, Question, Choice, Attempt, AttemptAnswer
 from app.services.exporter import export_results_to_xlsx, export_results_to_csv
+from app.services.importer import generate_import_template, parse_import_file, process_imported_questions
 from utils import teacher_required
 import secrets
 def _validate_question_data(data):
@@ -45,6 +47,15 @@ def _validate_question_data(data):
 
 teacher_bp = Blueprint('teacher', __name__, url_prefix='/api/teacher')
 
+_ACCESS_CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
+
+
+def _make_access_code():
+    while True:
+        code = "".join(secrets.choice(_ACCESS_CODE_ALPHABET) for _ in range(6))
+        if not Quiz.query.filter_by(access_code=code).first():
+            return code
+
 @teacher_bp.before_request
 @teacher_required
 def before_teacher_request():
@@ -56,14 +67,15 @@ def create_quiz():
     data = request.get_json() or {}
     if not (5 <= data.get('question_time', 30) <= 600):
         return jsonify({"error": "Thời gian câu hỏi từ 5-600 giây"}), 400
-    access_code = secrets.token_urlsafe(4)[:6].upper()
+    access_code=_make_access_code()
     new_quiz = Quiz(
         owner_id=current_user_id,
         title=data.get('title'),
         description=data.get('description'),
         access_code=access_code,
         question_time=data.get('question_time', 30),
-        is_public=data.get('is_public', True)
+        is_public=data.get('is_public', True),
+        tags=data.get('tags'),
     )
     db.session.add(new_quiz)
     db.session.commit()
@@ -142,62 +154,6 @@ def update_quiz(quiz_id):
     db.session.commit()
     return jsonify({"message": "Cap nhat bo de thanh cong", "quiz": {"id": quiz.id, "title": quiz.title, "description": quiz.description, "is_public": quiz.is_public}}), 200
 
-@teacher_bp.route('/quizzes/<int:quiz_id>/regenerate-code', methods=['POST'])
-def regenerate_code(quiz_id):
-    current_user_id = int(get_jwt_identity())
-    quiz = Quiz.query.filter_by(id=quiz_id, owner_id=current_user_id).first_or_404()
-    _ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
-    while True:
-        code = "".join(secrets.choice(_ALPHABET) for _ in range(6))
-        if not Quiz.query.filter_by(access_code=code).first():
-            quiz.access_code = code
-            db.session.commit()
-            return jsonify({"message": "Sinh lai ma tham gia thanh cong", "access_code": code}), 200
-
-@teacher_bp.route('/quizzes/<int:quiz_id>/duplicate', methods=['POST'])
-def duplicate_quiz(quiz_id):
-    current_user_id = int(get_jwt_identity())
-    quiz = Quiz.query.filter_by(id=quiz_id, owner_id=current_user_id).first_or_404()
-    # Create new quiz with new access code
-    new_access = secrets.token_urlsafe(4)[:6].upper()
-    while Quiz.query.filter_by(access_code=new_access).first() is not None:
-        new_access = secrets.token_urlsafe(4)[:6].upper()
-    new_quiz = Quiz(
-        owner_id=current_user_id,
-        title=quiz.title,
-        description=quiz.description,
-        access_code=new_access,
-        question_time=quiz.question_time,
-        is_public=False,
-        source_quiz_id=quiz.id
-    )
-    db.session.add(new_quiz)
-    db.session.commit()
-    # Duplicate questions and choices
-    for q in quiz.questions:
-        new_q = Question(
-            quiz_id=new_quiz.id,
-            type=q.type,
-            content=q.content,
-            image_url=q.image_url,
-            explanation=q.explanation,
-            order_num=q.order_num,
-            time_limit=q.time_limit
-        )
-        db.session.add(new_q)
-        db.session.flush()
-        for c in q.choices:
-            new_c = Choice(
-                question_id=new_q.id,
-                content=c.content,
-                is_correct=c.is_correct,
-                order_num=c.order_num
-            )
-            db.session.add(new_c)
-    db.session.commit()
-    new_access = new_quiz.access_code
-    return jsonify({"message": "Duplicate thanh cong", "quiz": {"id": new_quiz.id, "title": new_quiz.title, "description": new_quiz.description, "access_code": new_access, "is_public": new_quiz.is_public, "question_time": new_quiz.question_time, "source_quiz_id": new_quiz.source_quiz_id}}), 201
-
 @teacher_bp.route('/quizzes/<int:quiz_id>/publish', methods=['PATCH'])
 def publish_quiz(quiz_id):
     current_user_id = int(get_jwt_identity())
@@ -211,9 +167,10 @@ def publish_quiz(quiz_id):
 def reorder_questions(quiz_id):
     current_user_id = int(get_jwt_identity())
     quiz = Quiz.query.filter_by(id=quiz_id, owner_id=current_user_id).first_or_404()
+    if quiz.attempts:
+        return jsonify({"error": "Không thể thay đổi thứ tự câu hỏi khi đã có lượt làm bài"}), 409
     data = request.get_json() or {}
     ids = data.get('ids', [])
-    # Update order_num for each question
     for i, q_id in enumerate(ids):
         q = Question.query.get(q_id)
         if q and q.quiz_id == quiz.id:
@@ -293,11 +250,21 @@ def update_question(question_id):
     db.session.commit()
     return jsonify({"message": "Cập nhật câu hỏi thành công", "id": q.id}), 200
 
-@teacher_bp.route('/quizzes/<int:quiz_id>/results', methods=['GET'])
-def get_results(quiz_id):
+@teacher_bp.route('/quizzes/<int:quiz_id>/attempts', methods=['GET'])
+def get_attempts(quiz_id):
     current_user_id = int(get_jwt_identity())
     quiz = Quiz.query.filter_by(id=quiz_id, owner_id=current_user_id).first_or_404()
-    return jsonify([{"id": a.id, "student_name": a.student_name, "score": a.score, "status": a.status} for a in quiz.attempts])
+    attempts_data = []
+    for a in quiz.attempts:
+        attempts_data.append({
+            "id": a.id,
+            "student_name": a.student_name,
+            "score": a.score,
+            "status": a.status,
+            "started_at": a.started_at.isoformat() if a.started_at else None,
+            "finished_at": a.finished_at.isoformat() if a.finished_at else None,
+        })
+    return jsonify(attempts_data), 200
 
 @teacher_bp.route('/quizzes/<int:quiz_id>/stats', methods=['GET'])
 def get_stats(quiz_id):
@@ -305,7 +272,30 @@ def get_stats(quiz_id):
     quiz = Quiz.query.filter_by(id=quiz_id, owner_id=current_user_id).first_or_404()
     total = len(quiz.attempts)
     avg_score = sum(a.score for a in quiz.attempts) / total if total > 0 else 0
-    return jsonify({"total_attempts": total, "average_score": avg_score})
+
+    # Tỉ lệ sai từng câu
+    question_stats = []
+    for q in sorted(quiz.questions, key=lambda x: x.order_num):
+        wrong = 0
+        answered = 0
+        for aa in q.answers:
+            answered += 1
+            if not aa.is_correct:
+                wrong += 1
+        question_stats.append({
+            "id": q.id,
+            "content": q.content,
+            "wrong_count": wrong,
+            "wrong_rate": round(wrong / answered, 2) if answered > 0 else 0,
+            "wrong": wrong,
+            "answered": answered,
+        })
+
+    return jsonify({
+        "total_attempts": total,
+        "average_score": round(avg_score, 2),
+        "questions": question_stats,
+    }), 200
 
 @teacher_bp.route('/quizzes/<int:quiz_id>/export', methods=['GET'])
 def export_results(quiz_id):
@@ -321,8 +311,258 @@ def export_results(quiz_id):
 
 @teacher_bp.route('/library', methods=['GET'])
 def get_library():
-    quizzes = Quiz.query.filter_by(is_public=True).all()
-    return jsonify([{"id": q.id, "title": q.title, "owner": q.owner.username} for q in quizzes])
+    current_user_id = int(get_jwt_identity())
+    search = request.args.get('search', '').strip()
+    tag = request.args.get('tag', '').strip()
+    page = max(int(request.args.get('page', 1) or 1), 1)
+    per_page = max(int(request.args.get('per_page', 12) or 12), 1)
+
+    query = Quiz.query.filter_by(is_public=True)
+    if search:
+        like = f"%{search}%"
+        query = query.filter(or_(Quiz.title.ilike(like), Quiz.description.ilike(like)))
+    if tag:
+        query = query.filter(Quiz.tags.ilike(f"%{tag}%"))
+
+    total = query.count()
+    quizzes = query.offset((page - 1) * per_page).limit(per_page).all()
+
+    return jsonify({
+        "quizzes": [{
+            "id": q.id,
+            "title": q.title,
+            "description": q.description,
+            "owner": q.owner.username,
+            "owner_id": q.owner_id,
+            "is_public": q.is_public,
+            "tags": q.tags,
+            "source_quiz_id": q.source_quiz_id,
+        } for q in quizzes],
+        "page": page,
+        "per_page": per_page,
+        "total": total,
+    }), 200
+
+@teacher_bp.route('/library/<int:quiz_id>', methods=['GET'])
+def get_library_quiz(quiz_id):
+    current_user_id = int(get_jwt_identity())
+    quiz = Quiz.query.filter_by(id=quiz_id, is_public=True).filter(Quiz.owner_id != current_user_id).first_or_404()
+    questions_data = []
+    for q in sorted(quiz.questions, key=lambda x: x.order_num):
+        choices_data = []
+        for c in sorted(q.choices, key=lambda x: x.order_num):
+            choices_data.append({
+                "content": c.content,
+                "order_num": c.order_num,
+            })
+        questions_data.append({
+            "type": q.type,
+            "content": q.content,
+            "explanation": q.explanation,
+            "image_url": q.image_url,
+            "time_limit": q.time_limit,
+            "order_num": q.order_num,
+            "choices": choices_data,
+        })
+    return jsonify({
+        "id": quiz.id,
+        "title": quiz.title,
+        "description": quiz.description,
+        "owner": quiz.owner.username,
+        "owner_id": quiz.owner_id,
+        "tags": quiz.tags,
+        "is_public": quiz.is_public,
+        "questions": questions_data,
+    }), 200
 
 
+@teacher_bp.route('/library/<int:quiz_id>/clone', methods=['POST'])
+def clone_quiz(quiz_id):
+    current_user_id = int(get_jwt_identity())
+    original = Quiz.query.filter_by(id=quiz_id, is_public=True).filter(Quiz.owner_id != current_user_id).first_or_404()
 
+    new_quiz = Quiz(
+        owner_id=current_user_id,
+        title=f"{original.title} (Bản sao)",
+        description=original.description,
+        tags=original.tags,
+        access_code=_make_access_code(),
+        question_time=original.question_time,
+        is_public=False,
+        source_quiz_id=original.id,
+    )
+    db.session.add(new_quiz)
+    db.session.commit()
+
+    for q in sorted(original.questions, key=lambda x: x.order_num):
+        new_q = Question(
+            quiz_id=new_quiz.id,
+            type=q.type,
+            content=q.content,
+            image_url=q.image_url,
+            explanation=q.explanation,
+            order_num=q.order_num,
+            time_limit=q.time_limit,
+        )
+        db.session.add(new_q)
+        db.session.commit()
+        for c in sorted(q.choices, key=lambda x: x.order_num):
+            new_c = Choice(
+                question_id=new_q.id,
+                content=c.content,
+                is_correct=c.is_correct,
+                order_num=c.order_num,
+            )
+            db.session.add(new_c)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Da clone bo de thanh cong",
+        "quiz": {
+            "id": new_quiz.id,
+            "title": new_quiz.title,
+            "access_code": new_quiz.access_code,
+            "is_public": new_quiz.is_public,
+            "source_quiz_id": new_quiz.source_quiz_id,
+        }
+    }), 201
+
+@teacher_bp.route('/import-template', methods=['GET'])
+def import_template():
+    output = generate_import_template()
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        download_name='import-template.xlsx',
+        as_attachment=True,
+    )
+
+
+@teacher_bp.route('/quizzes/<int:quiz_id>/import', methods=['POST'])
+def import_quiz(quiz_id):
+    current_user_id = int(get_jwt_identity())
+    quiz = Quiz.query.filter_by(id=quiz_id, owner_id=current_user_id).first_or_404()
+    if quiz.attempts:
+        return jsonify({"error": "Không thể nhập câu hỏi khi bộ đề đã có lượt làm bài"}), 409
+
+    if 'file' not in request.files:
+        return jsonify({"error": "Không có file được tải lên."}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "Không chọn file."}), 400
+
+    try:
+        rows = parse_import_file(file)
+    except Exception as e:
+        return jsonify({"error": f"Không đọc được file: {str(e)}"}), 400
+
+    valid_questions, errors = process_imported_questions(rows)
+
+    for q_data in valid_questions:
+        new_q = Question(
+            quiz_id=quiz_id,
+            type=q_data['type'],
+            content=q_data['content'],
+            image_url=q_data.get('image_url'),
+            explanation=q_data.get('explanation'),
+            time_limit=q_data.get('time_limit'),
+        )
+        db.session.add(new_q)
+        db.session.commit()
+        for c in q_data['choices']:
+            new_c = Choice(
+                question_id=new_q.id,
+                content=c['content'],
+                is_correct=c['is_correct'],
+                order_num=c['order_num'],
+            )
+            db.session.add(new_c)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Nhập câu hỏi thành công",
+        "imported": len(valid_questions),
+        "errors": errors,
+    }), 200
+
+@teacher_bp.route('/attempts/<int:attempt_id>', methods=['DELETE'])
+def delete_attempt(attempt_id):
+    current_user_id = int(get_jwt_identity())
+    attempt = Attempt.query.join(Quiz).filter(Attempt.id == attempt_id, Quiz.owner_id == current_user_id).first_or_404()
+    db.session.delete(attempt)
+    db.session.commit()
+    return jsonify({"message": "Đã xóa kết quả làm bài"}), 200
+
+
+@teacher_bp.route('/quizzes/<int:quiz_id>/attempts', methods=['DELETE'])
+def delete_all_attempts(quiz_id):
+    current_user_id = int(get_jwt_identity())
+    quiz = Quiz.query.filter_by(id=quiz_id, owner_id=current_user_id).first_or_404()
+    count = len(quiz.attempts)
+    Attempt.query.filter_by(quiz_id=quiz_id).delete()
+    db.session.commit()
+    return jsonify({"deleted": count, "message": "Đã xóa toàn bộ kết quả làm bài của bộ đề"}), 200
+
+
+@teacher_bp.route('/quizzes/<int:quiz_id>/regenerate-code', methods=['POST'])
+def regenerate_code(quiz_id):
+    current_user_id = int(get_jwt_identity())
+    quiz = Quiz.query.filter_by(id=quiz_id, owner_id=current_user_id).first_or_404()
+    new_code = _make_access_code()
+    quiz.access_code = new_code
+    db.session.commit()
+    return jsonify({"message": "Đã sinh mã mới", "access_code": new_code}), 200
+
+
+@teacher_bp.route('/quizzes/<int:quiz_id>/duplicate', methods=['POST'])
+def duplicate_quiz(quiz_id):
+    current_user_id = int(get_jwt_identity())
+    original = Quiz.query.filter_by(id=quiz_id, owner_id=current_user_id).first_or_404()
+
+    new_quiz = Quiz(
+        owner_id=current_user_id,
+        title=f"{original.title} (Bản sao)",
+        description=original.description,
+        tags=original.tags,
+        access_code=_make_access_code(),
+        question_time=original.question_time,
+        is_public=False,
+        source_quiz_id=original.id,
+    )
+    db.session.add(new_quiz)
+    db.session.commit()
+
+    for q in sorted(original.questions, key=lambda x: x.order_num):
+        new_q = Question(
+            quiz_id=new_quiz.id,
+            type=q.type,
+            content=q.content,
+            image_url=q.image_url,
+            explanation=q.explanation,
+            order_num=q.order_num,
+            time_limit=q.time_limit,
+        )
+        db.session.add(new_q)
+        db.session.commit()
+        for c in sorted(q.choices, key=lambda x: x.order_num):
+            new_c = Choice(
+                question_id=new_q.id,
+                content=c.content,
+                is_correct=c.is_correct,
+                order_num=c.order_num,
+            )
+            db.session.add(new_c)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Duplicate thanh cong",
+        "quiz": {
+            "id": new_quiz.id,
+            "title": new_quiz.title,
+            "description": new_quiz.description,
+            "access_code": new_quiz.access_code,
+            "is_public": new_quiz.is_public,
+            "question_time": new_quiz.question_time,
+            "source_quiz_id": new_quiz.source_quiz_id,
+        }
+    }), 201

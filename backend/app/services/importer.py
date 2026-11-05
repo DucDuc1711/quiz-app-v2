@@ -1,6 +1,17 @@
 import io
 import csv
+import re
+import unicodedata
 from openpyxl import Workbook, load_workbook
+
+
+def strip_accents(text):
+    if not text:
+        return ""
+    text = text.replace("đ", "d").replace("Đ", "D")
+    text = unicodedata.normalize('NFD', text)
+    text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+    return text.lower().strip()
 
 
 def generate_import_template():
@@ -8,7 +19,7 @@ def generate_import_template():
     ws = wb.active
     ws.title = "Template"
     headers = [
-        "Câu hỏi", "Loại",
+        "Câu hỏi", "Loại (1 đáp án / nhiều đáp án / đúng-sai)",
         "Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D", "Đáp án E", "Đáp án F",
         "Đáp án đúng", "Giải thích", "Thời gian (giây)"
     ]
@@ -58,26 +69,25 @@ def process_imported_questions(rows):
     valid_questions = []
     errors = []
 
-    TYPE_MAP = {
-        "1 đáp án": "single",
-        "nhiều đáp án": "multiple",
-        "đúng-sai": "true_false",
-        "đúng/sai": "true_false",
-        "single": "single",
-        "multiple": "multiple",
-        "true_false": "true_false"
-    }
-
     LETTER_MAP = {'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5}
 
     for row_num, row in rows:
         content = row[0].strip() if len(row) > 0 else ""
-        raw_type = row[1].strip().lower() if len(row) > 1 else ""
-        q_type = TYPE_MAP.get(raw_type)
+        raw_type = row[1].strip() if len(row) > 1 else ""
+        normalized_type = strip_accents(raw_type)
 
         if not content:
             errors.append(f"dòng {row_num} – Thiếu nội dung câu hỏi")
             continue
+
+        q_type = None
+        if "1 dap an" in normalized_type or normalized_type == "single":
+            q_type = "single"
+        elif "nhieu dap an" in normalized_type or normalized_type == "multiple":
+            q_type = "multiple"
+        elif "dung-sai" in normalized_type or "dung/sai" in normalized_type or normalized_type == "true_false":
+            q_type = "true_false"
+
         if not q_type:
             errors.append(f"dòng {row_num} – Loại câu hỏi không hợp lệ")
             continue
@@ -88,20 +98,33 @@ def process_imported_questions(rows):
             errors.append(f"dòng {row_num} – Số lượng đáp án phải từ 2-6")
             continue
 
-        raw_correct = row[8].strip().upper() if len(row) > 8 else ""
-        correct_letters = [c.strip() for c in raw_correct.replace(';', ',').split(',') if c.strip()]
-        if not correct_letters:
+        raw_correct = row[8].strip() if len(row) > 8 else ""
+        if not raw_correct:
             errors.append(f"dòng {row_num} – Thiếu đáp án đúng")
             continue
 
         correct_indices = set()
         invalid_letter = False
-        for l in correct_letters:
-            if l in LETTER_MAP and LETTER_MAP[l] < len(choices_list):
-                correct_indices.add(LETTER_MAP[l])
+
+        parts = [p.strip() for p in re.split(r'[,;\s]+', raw_correct) if p.strip()]
+        for part in parts:
+            part_upper = part.upper()
+            part_norm = strip_accents(part)
+            if part_upper in LETTER_MAP and LETTER_MAP[part_upper] < len(choices_list):
+                correct_indices.add(LETTER_MAP[part_upper])
+            elif part.isdigit() and 1 <= int(part) <= len(choices_list):
+                correct_indices.add(int(part) - 1)
             else:
-                invalid_letter = True
-                break
+                matched = False
+                for idx_c, c_text in enumerate(choices_list):
+                    if strip_accents(c_text) == part_norm:
+                        correct_indices.add(idx_c)
+                        matched = True
+                        break
+                if not matched:
+                    invalid_letter = True
+                    break
+
         if invalid_letter or not correct_indices:
             errors.append(f"dòng {row_num} – Đáp án đúng không hợp lệ")
             continue

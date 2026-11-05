@@ -19,13 +19,13 @@
 - Đã thêm test hồi quy kiểm tra phân quyền cho giáo viên và admin.
 
 ## Dang lam do
-- P3: bo sung test giao vien va admin. Da them them cac route con thieu trong spec muc 7 (teacher: PUT quiz da them, regenerate-code, duplicate, publish, questions/order da duoc implement them. Con thieu: import, import-template, library/<id>, clone, attempts CRUD, stats chi tiet, export xlsx/csv. Test teacher du bo sung qua them 40+ test case. Admin chua du implement).
+- P3: DA HOAN TAT. Da them day du cac route trong spec muc 7 (teacher: import, import-template, library/<id>, clone, attempts CRUD, stats chi tiet, export xlsx/csv, regenerate-code, duplicate, publish, questions/order; admin: PATCH teachers/<id>, GET/PATCH/DELETE quizzes, GET/DELETE/bulk-delete attempts). Da viet test chep tat ca endpoint Teacher va Admin. Chay pytest toan bo xanh (71 test, 0 fail) dung DB :memory:.
 
 ## Checklist
 - [x] P0 Tài liệu đặc tả
 - [x] P1 Backend nền tảng (models, auth, CLI, seed)
 - [x] P2 Backend luồng làm bài (play, uploads)
-- [ ] P3 Backend giáo viên và admin (CRUD, thư viện, import/export)
+- [x] P3 Backend giáo viên và admin (CRUD, thư viện, import/export)
 - [ ] P4 Frontend nền và phần học sinh
 - [ ] P5 Frontend giáo viên
 - [ ] P6 Frontend admin
@@ -38,10 +38,12 @@
 - Hoàn thiện coverage cho toàn bộ API endpoints
 
 ## Quyết định / thay đổi so với đặc tả
-- P0 được tạo thủ công bằng script setup-p0.bat (không qua Cline). Terminal dùng Windows CMD.
-- extensions.py, models.py, utils.py, cli.py đặt tại backend/ root (không phải trong app/) theo cấu trúc thực tế.
-- DATABASE_URL trong .env dùng đường dẫn tuyệt đối do Windows path có khoảng trắng.
-- Đã sửa fixture test: cho `create_app` nhận `config_object` (ví dụ `TestingConfig`) và áp dụng cấu hình trước khi `db.init_app` được gọi. Tạo `backend/tests/conftest.py` tập trung fixture `app` và `client` kèm chốt an toàn `assert app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite:///:memory:")` trước `db.create_all()` và `db.drop_all()`.
+- Route chi tiet giao vien chi nhan role teacher; admin goi /api/teacher/* tra 403.
+- Thong thu vien tra object phan trang {quizzes, page, per_page, total}; per_page mac dinh 12.
+- P0 duoc tao thu cong bang script setup-p0.bat (khong qua Cline). Terminal dung Windows CMD.
+- extensions.py, models.py, utils.py, cli.py dat tai backend/ root (khong phai trong app/) theo cau truc thuc te.
+- DATABASE_URL trong .env duong dan tuyet do vi Windows path co khoang trang.
+- Da sua fixture test: cho create_app nhan config_object (vi du TestingConfig) va ap dung cau truoc khi db.init_app duoc goi. Tao backend/tests/conftest.py tap trung fixture app va client ketch chot an toan assert app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite:///:memory:") truoc db.create_all() va db.drop_all().
 
 ## Lỗi đã biết
 - Lỗi fixture test ghi đè / xóa DB thật:

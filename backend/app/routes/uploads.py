@@ -28,7 +28,7 @@ def _detect_ext(data):
     return None
 
 
-@uploads_bp.route("/uploads", methods=["POST"])
+@uploads_bp.route("/teacher/uploads", methods=["POST"])
 @teacher_required
 def upload_file():
     if "file" not in request.files:

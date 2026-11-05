@@ -113,6 +113,7 @@ frontend/
 - GET /api/teacher/quizzes/<id>/attempts; GET .../stats (số người làm, điểm trung bình, tỉ lệ sai từng câu); GET .../export?format=xlsx|csv
 - DELETE /api/teacher/attempts/<id>; DELETE /api/teacher/quizzes/<id>/attempts (xóa toàn bộ kết quả)
 - GET /api/teacher/library?search=&tag=&page=; GET /api/teacher/library/<id>; POST /api/teacher/library/<id>/clone
+→ trả {quizzes: [...], page, per_page, total}; per_page mặc định 12
 - POST /api/teacher/uploads (multipart, trường file) → {url}; GET /api/uploads/<filename> (công khai)
 
 ### Admin (JWT role admin)
