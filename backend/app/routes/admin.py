@@ -49,8 +49,9 @@ def delete_teacher(user_id):
     if mode == 'transfer':
         admin = User.query.filter_by(role='admin').first()
         if admin:
-            for q in user.quizzes:
-                q.owner_id = admin.id
+            for q in list(user.quizzes):
+                q.owner = admin
+        db.session.flush()
     db.session.delete(user)
     db.session.commit()
     return jsonify({"message": "Đã xóa giáo viên"}), 200
@@ -142,6 +143,6 @@ def bulk_delete_attempts():
         return jsonify({"error": "ids phải là danh sách không rỗng"}), 400
     Attempt.query.filter(Attempt.id.in_(ids)).delete(synchronize_session=False)
     db.session.commit()
-    return jsonify({"message": f"Đã xóa {len(ids)} kết quả làm bài"}), 200
+    return jsonify({"deleted": len(ids), "message": f"Đã xóa {len(ids)} kết quả làm bài"}), 200
 
 
