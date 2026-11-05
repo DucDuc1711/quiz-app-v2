@@ -12,9 +12,10 @@ def sanitize_cell(value):
 def export_results_to_xlsx(attempts):
     wb = Workbook()
     ws = wb.active
-    ws.append(["Ten hoc sinh", "Diem", "So cau dung", "Tong cau", "Thoi gian (s)", "So lan roi tab", "Trang thai", "Thoi diem nop"])
+    ws.append(["Tên", "Điểm", "Số câu đúng", "Tổng câu", "Thời gian", "Số lần rời tab", "Trạng thái", "Thời điểm nộp"])
     for a in attempts:
         submitted_at = a.finished_at.strftime("%Y-%m-%d %H:%M:%S") if getattr(a, "finished_at", None) else ""
+        status_label = "Đã nộp" if a.status == "finished" else "Đang làm"
         ws.append([
             sanitize_cell(a.student_name or ""),
             a.score if a.score is not None else 0,
@@ -22,7 +23,7 @@ def export_results_to_xlsx(attempts):
             a.total_questions if a.total_questions is not None else 0,
             round(a.time_spent, 1) if a.time_spent is not None else 0,
             a.tab_switch_count if a.tab_switch_count is not None else 0,
-            a.status or "",
+            status_label,
             submitted_at
         ])
     
@@ -35,9 +36,10 @@ def export_results_to_xlsx(attempts):
 def export_results_to_csv(attempts):
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Ten hoc sinh", "Diem", "So cau dung", "Tong cau", "Thoi gian (s)", "So lan roi tab", "Trang thai", "Thoi diem nop"])
+    writer.writerow(["Tên", "Điểm", "Số câu đúng", "Tổng câu", "Thời gian", "Số lần rời tab", "Trạng thái", "Thời điểm nộp"])
     for a in attempts:
         submitted_at = a.finished_at.strftime("%Y-%m-%d %H:%M:%S") if getattr(a, "finished_at", None) else ""
+        status_label = "Đã nộp" if a.status == "finished" else "Đang làm"
         writer.writerow([
             sanitize_cell(a.student_name or ""),
             a.score if a.score is not None else 0,
@@ -45,7 +47,7 @@ def export_results_to_csv(attempts):
             a.total_questions if a.total_questions is not None else 0,
             round(a.time_spent, 1) if a.time_spent is not None else 0,
             a.tab_switch_count if a.tab_switch_count is not None else 0,
-            a.status or "",
+            status_label,
             submitted_at
         ])
     return output.getvalue()

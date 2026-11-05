@@ -19,7 +19,8 @@
 - Đã thêm test hồi quy kiểm tra phân quyền cho giáo viên và admin.
 
 ## Dang lam do
-- P3: DA HOAN TAT. Da them day du cac route trong spec muc 7 (teacher: import, import-template, library/<id>, clone, attempts CRUD, stats chi tiet, export xlsx/csv, regenerate-code, duplicate, publish, questions/order; admin: PATCH teachers/<id>, GET/PATCH/DELETE quizzes, GET/DELETE/bulk-delete attempts). Da viet test chep tat ca endpoint Teacher va Admin. Chay pytest toan bo xanh (71 test, 0 fail) dung DB :memory:.
+- P3: DA HOAN TAT. Da them day du cac route trong spec muc 7 (teacher: import, import-template, library/<id>, clone, attempts CRUD, stats chi tiet, export xlsx/csv, regenerate-code, duplicate, publish, questions/order; admin: PATCH teachers/<id>, GET/PATCH/DELETE quizzes, GET/DELETE/bulk-delete attempts). Da viet test chep tat ca endpoint Teacher va Admin. Chay pytest toan bo xanh (80 test, 0 fail) dung DB :memory:.
+- DA sua loi exporter xuat tieu de cot lech spec muc 6 va bo sung test nhom: export tieu de tieng Viet, 409 khi da co luot lam, uploads, xoa giao vien transfer, PUT cau hop le.
 
 ## Checklist
 - [x] P0 Tài liệu đặc tả
@@ -44,6 +45,7 @@
 - extensions.py, models.py, utils.py, cli.py dat tai backend/ root (khong phai trong app/) theo cau truc thuc te.
 - DATABASE_URL trong .env duong dan tuyet do vi Windows path co khoang trang.
 - Da sua fixture test: cho create_app nhan config_object (vi du TestingConfig) va ap dung cau truoc khi db.init_app duoc goi. Tao backend/tests/conftest.py tap trung fixture app va client ketch chot an toan assert app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite:///:memory:") truoc db.create_all() va db.drop_all().
+- Xuat ket qua dung tieu de tieng Viet theo spec muc 6 (Ten | Diem | So cau dung | Tong cau | Thoi gian | So lan roi tab | Trang thai | Thoi diem nop); cot Trang thai hien "Da nop" khi finished va "Dang lam" khi in_progress.
 
 ## Lỗi đã biết
 - Lỗi fixture test ghi đè / xóa DB thật:

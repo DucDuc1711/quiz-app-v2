@@ -133,12 +133,13 @@ def _add_attempts(app, quiz_id, attempts_data, question_ids=None):
         objs = []
         for data in attempts_data:
             token = f"att-{uuid.uuid4().hex[:12]}"
+            is_finished = data.get("status", "finished") == "finished"
             a = Attempt(
                 token=token, quiz_id=quiz_id, student_name=data["student_name"],
-                device_id="dev-01", status="finished", phase="question",
-                current_index=data["total"], total_questions=data["total"],
+                device_id="dev-01", status=data.get("status", "finished"), phase="question",
+                current_index=data["total"] if is_finished else 0, total_questions=data["total"],
                 correct_answers=data["correct"], score=data["score"],
-                time_spent=60.0, finished_at=datetime.now(timezone.utc),
+                time_spent=60.0, finished_at=datetime.now(timezone.utc) if is_finished else None,
             )
             db.session.add(a)
             db.session.flush()
@@ -262,6 +263,79 @@ def test_teacher_questions_order_409_when_attempts(client, app):
     del_resp = client.delete(f"/api/teacher/quizzes/{quiz_id}/attempts", headers=_auth_headers(token))
     assert del_resp.status_code == 200
     resp = client.put(f"/api/teacher/quizzes/{quiz_id}/questions/order", json={"ids": [q_id]}, headers=_auth_headers(token))
+    assert resp.status_code == 200, resp.get_json()
+
+
+def test_teacher_question_crud_409_when_attempts(client, app):
+    token = get_teacher_token(client, username="q409", email="q409@example.com")
+    headers = _auth_headers(token)
+    quiz_id = _create_quiz(client, token)
+    q_id = _add_question(client, token, quiz_id)
+    _add_attempts(app, quiz_id, [{"student_name": "A", "score": 5.0, "correct": 1, "total": 1}], [q_id])
+
+    # POST thêm câu hỏi -> 409
+    resp = client.post(f"/api/teacher/quizzes/{quiz_id}/questions", json={
+        "type": "single", "content": "Cau them?",
+        "choices": [{"content": "A", "is_correct": True}, {"content": "B", "is_correct": False}]
+    }, headers=headers)
+    assert resp.status_code == 409, resp.get_json()
+
+    # PUT sửa câu hỏi -> 409
+    resp = client.put(f"/api/teacher/questions/{q_id}", json={
+        "type": "single", "content": "Cau sua?",
+        "choices": [{"content": "A", "is_correct": True}, {"content": "B", "is_correct": False}]
+    }, headers=headers)
+    assert resp.status_code == 409, resp.get_json()
+
+    # DELETE xóa câu hỏi -> 409
+    resp = client.delete(f"/api/teacher/questions/{q_id}", headers=headers)
+    assert resp.status_code == 409, resp.get_json()
+
+    # POST import -> 409 (kiem tra attempts xac trinh truoc khi doc file, khong can gui file)
+    resp = client.post(f"/api/teacher/quizzes/{quiz_id}/import", headers=headers)
+    assert resp.status_code == 409, resp.get_json()
+
+    # Van sua duoc tieu bo de va cai dat khac
+    resp = client.put(f"/api/teacher/quizzes/{quiz_id}", json={"title": "De da cap nhat", "question_time": 60}, headers=headers)
+    assert resp.status_code == 200, resp.get_json()
+    assert resp.get_json()["quiz"]["title"] == "De da cap nhat"
+
+
+def test_teacher_update_question(client):
+    token = get_teacher_token(client, username="uptq", email="uptq@example.com")
+    headers = _auth_headers(token)
+    quiz_id = _create_quiz(client, token)
+    q_id = _add_question(client, token, quiz_id, content="Cau goc?")
+
+    # Sua thanh cong: doi noi dung, loai va cac dap an
+    resp = client.put(f"/api/teacher/questions/{q_id}", json={
+        "type": "multiple", "content": "Cau hoi da sua?",
+        "choices": [
+            {"content": "A", "is_correct": True},
+            {"content": "B", "is_correct": True},
+            {"content": "C", "is_correct": False}
+        ]
+    }, headers=headers)
+    assert resp.status_code == 200, resp.get_json()
+    assert resp.get_json()["message"] == "Cập nhật câu hỏi thành công"
+    assert resp.get_json()["id"] == q_id
+
+    detail = client.get(f"/api/teacher/quizzes/{quiz_id}", headers=headers).get_json()
+    q = next(q for q in detail["questions"] if q["id"] == q_id)
+    assert q["content"] == "Cau hoi da sua?"
+    assert q["type"] == "multiple"
+    assert len(q["choices"]) == 3
+    assert sum(1 for c in q["choices"] if c["is_correct"]) == 2
+
+    # Du lieu sai: single co 2 dap an dung -> 400
+    resp = client.put(f"/api/teacher/questions/{q_id}", json={
+        "type": "single", "content": "Cau sai?",
+        "choices": [
+            {"content": "A", "is_correct": True},
+            {"content": "B", "is_correct": True}
+        ]
+    }, headers=headers)
+    assert resp.status_code == 400, resp.get_json()
 
 
 def _make_xlsx(rows):
@@ -443,25 +517,34 @@ def test_teacher_export_xlsx_and_csv(client, app):
     _add_attempts(app, quiz_id, [
         {"student_name": "=1+1", "score": 9.0, "correct": 4, "total": 5},
         {"student_name": "Nguyen Van A", "score": 7.0, "correct": 3, "total": 5},
+        {"student_name": "Dang lam B", "score": 0.0, "correct": 0, "total": 5, "status": "in_progress"},
     ], [])
+
+    header = ["Tên", "Điểm", "Số câu đúng", "Tổng câu", "Thời gian", "Số lần rời tab", "Trạng thái", "Thời điểm nộp"]
 
     resp = client.get(f"/api/teacher/quizzes/{quiz_id}/export?format=xlsx", headers=_auth_headers(token))
     assert resp.status_code == 200
     assert "spreadsheetml.sheet" in (resp.headers.get("Content-Type") or "")
-    from openpyxl import load_workbook
     wb = load_workbook(io.BytesIO(resp.data))
     ws = wb.active
     rows = list(ws.iter_rows(values_only=True))
-    assert list(rows[0]) == ["Ten hoc sinh", "Diem", "So cau dung", "Tong cau", "Thoi gian (s)", "So lan roi tab", "Trang thai", "Thoi diem nop"]
+    assert list(rows[0]) == header
     assert rows[1][0] == "'=1+1"
     assert rows[1][1] == 9.0
+    assert rows[1][6] == "Đã nộp"
+    assert rows[2][6] == "Đã nộp"
+    assert rows[3][0] == "Dang lam B"
+    assert rows[3][6] == "Đang làm"
+    assert not rows[3][7]
 
     resp = client.get(f"/api/teacher/quizzes/{quiz_id}/export?format=csv", headers=_auth_headers(token))
     assert resp.status_code == 200
     text = resp.get_data(as_text=True)
     lines = text.strip().splitlines()
-    assert lines[0].startswith("Ten hoc sinh")
+    assert lines[0] == ",".join(header)
     assert any(line.startswith("'=1+1,") for line in lines)
+    assert any("Dang lam B" in line and "Đang làm" in line for line in lines)
+    assert any("Nguyen Van A" in line and "Đã nộp" in line for line in lines)
 
 
 def test_teacher_delete_one_attempt(client, app):

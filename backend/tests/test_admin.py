@@ -146,12 +146,29 @@ def test_admin_delete_teacher_quizzes_invalid(client):
     resp = client.delete(f"/api/admin/teachers/{teacher_id}?quizzes=keep", headers=aheaders)
     assert resp.status_code == 400, resp.get_json()
 
+
+def test_admin_delete_teacher_quizzes_transfer(client):
+    admin_token = get_admin_token(client)
+    aheaders = _auth_headers(admin_token)
+
+    teacher_token = get_teacher_token(client, username="tchdelx", email="tchdelx@example.com")
+    quiz_id = _create_quiz_via_teacher(client, teacher_token)
+    with client.application.app_context():
+        teacher = User.query.filter_by(username="tchdelx").first()
+        teacher_id = teacher.id
+        admin = User.query.filter_by(role="admin").first()
+        admin_id = admin.id
+
     resp = client.delete(f"/api/admin/teachers/{teacher_id}?quizzes=transfer", headers=aheaders)
     assert resp.status_code == 200, resp.get_json()
+
     with client.application.app_context():
+        # Giao vien bi xoa het
+        assert User.query.get(teacher_id) is None
+        # Bo de van con va duoc chuyen sang admin
         q = Quiz.query.get(quiz_id)
-        admin = User.query.filter_by(role="admin").first()
-        assert q.owner_id == admin.id
+        assert q is not None
+        assert q.owner_id == admin_id
 
 
 def test_admin_delete_teacher_quizzes_delete(client):
