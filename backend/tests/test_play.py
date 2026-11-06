@@ -281,13 +281,13 @@ def test_state_finished_after_all(client, app):
     with app.app_context():
         attempt = Attempt.query.filter_by(token=token).first()
         q2 = attempt.question_order[attempt.current_index]
-    client.post(f"/api/play/{token}/answer", json={"question_id": q2, "choice_ids": [4, 6]})
+    client.post(f"/api/play/{token}/answer", json={"question_id": q2, "choice_ids": [3, 5]})
     client.post(f"/api/play/{token}/next")
 
     with app.app_context():
         attempt = Attempt.query.filter_by(token=token).first()
         q3 = attempt.question_order[attempt.current_index]
-    client.post(f"/api/play/{token}/answer", json={"question_id": q3, "choice_ids": [7]})
+    client.post(f"/api/play/{token}/answer", json={"question_id": q3, "choice_ids": [6]})
     resp = client.post(f"/api/play/{token}/next")
     assert resp.get_json()["status"] == "finished"
 
@@ -364,7 +364,7 @@ def test_state_auto_timeout(client, app):
         attempt = Attempt.query.filter_by(token=token).first()
         quiz = attempt.quiz
         quiz.question_time = 1
-        # Dat question_started_at qua han 10 giay (vuot 1s + an han 2s)
+        # Đặt question_started_at quá hạn 10 giây (vượt limit 1s, không có ân hạn)
         attempt.question_started_at = datetime.now(timezone.utc) - timedelta(seconds=10)
         db.session.commit()
 
@@ -385,10 +385,28 @@ def test_answer_over_limit_is_timeout(client, app):
         db.session.commit()
         q1 = attempt.question_order[0]
 
+    # Qua han nhung van chon dung -> timed_out true, is_correct true (van cham lua chon da chon)
     resp = client.post(f"/api/play/{token}/answer", json={"question_id": q1, "choice_ids": [1]})
     assert resp.status_code == 200
-    assert resp.get_json()["feedback"]["timed_out"] is True
-    assert resp.get_json()["feedback"]["is_correct"] is False
+    fb = resp.get_json()["feedback"]
+    assert fb["timed_out"] is True
+    assert fb["is_correct"] is True
+    assert fb["selected_choice_ids"] == [1]
+
+    # Chuyen sang cau 2, dat qua han, chon sai -> timed_out true, is_correct false
+    client.post(f"/api/play/{token}/next")
+    with app.app_context():
+        attempt = Attempt.query.filter_by(token=token).first()
+        attempt.question_started_at = datetime.now(timezone.utc) - timedelta(seconds=10)
+        db.session.commit()
+        q2 = attempt.question_order[attempt.current_index]
+
+    resp2 = client.post(f"/api/play/{token}/answer", json={"question_id": q2, "choice_ids": [4]})
+    assert resp2.status_code == 200
+    fb2 = resp2.get_json()["feedback"]
+    assert fb2["timed_out"] is True
+    assert fb2["is_correct"] is False
+    assert fb2["selected_choice_ids"] == [4]
 
 
 def test_result_blocked_before_finish(client, app):
@@ -438,6 +456,64 @@ def test_result_and_ranking_after_finish(client, app):
     assert len(data["ranking"]) == 1
     assert data["ranking"][0]["is_me"] is True
     assert data["ranking"][0]["rank"] == 1
+
+
+def test_answer_empty_choice_ids(client, app):
+    """choice_ids rong la hop lap, tinh la sai."""
+    token, code = _join_and_get_token(client, app)
+    with app.app_context():
+        attempt = Attempt.query.filter_by(token=token).first()
+        q1 = attempt.question_order[0]
+
+    resp = client.post(f"/api/play/{token}/answer", json={"question_id": q1, "choice_ids": []})
+    assert resp.status_code == 200
+    fb = resp.get_json()["feedback"]
+    assert fb["is_correct"] is False
+    assert fb["selected_choice_ids"] == []
+    assert fb["timed_out"] is False
+
+
+def test_answer_missing_fields(client, app):
+    """Chi tra 400 khi thieu hang trieu question_id hoac choice_ids."""
+    token, code = _join_and_get_token(client, app)
+    with app.app_context():
+        attempt = Attempt.query.filter_by(token=token).first()
+        q1 = attempt.question_order[0]
+
+    resp = client.post(f"/api/play/{token}/answer", json={"question_id": q1})
+    assert resp.status_code == 400
+
+    resp = client.post(f"/api/play/{token}/answer", json={"choice_ids": [1]})
+    assert resp.status_code == 400
+
+    resp = client.post(f"/api/play/{token}/answer", json={})
+    assert resp.status_code == 400
+
+
+def test_state_after_limit_no_answer(client, app):
+    """State qua limit chua answer -> tu ghi khong tra loi, chuyen phase feedback."""
+    token, code = _join_and_get_token(client, app)
+    with app.app_context():
+        attempt = Attempt.query.filter_by(token=token).first()
+        quiz = attempt.quiz
+        quiz.question_time = 1
+        attempt.question_started_at = datetime.now(timezone.utc) - timedelta(seconds=10)
+        db.session.commit()
+
+    resp = client.get(f"/api/play/{token}/state")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["phase"] == "feedback"
+    assert data["feedback"]["timed_out"] is True
+    assert data["feedback"]["selected_choice_ids"] == []
+    assert data["feedback"]["is_correct"] is False
+
+    # Sau khi da tu ghi khong tra loi, khong the tra loi lai duoc (409)
+    with app.app_context():
+        attempt = Attempt.query.filter_by(token=token).first()
+        q1 = attempt.question_order[0]
+    resp2 = client.post(f"/api/play/{token}/answer", json={"question_id": q1, "choice_ids": [1]})
+    assert resp2.status_code == 409
 
 
 def test_event_tab_hidden(client, app):

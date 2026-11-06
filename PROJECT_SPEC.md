@@ -1,7 +1,7 @@
 # QUIZ APP v2 — ĐẶC TẢ DỰ ÁN
 
 ## 1. Mục tiêu
-Web thi trắc nghiệm cho lớp học. Học sinh không cần tài khoản: nhập mã bộ đề và tên (tên nhập tự do, được phép trùng) rồi làm bài. Mỗi câu có đồng hồ riêng, chọn xong thấy ngay đúng/sai, cuối bài xem điểm và bảng xếp hạng đầy đủ. Giáo viên tự đăng ký, tạo bộ đề, sinh mã tham gia, xem kết quả. Admin là chủ hệ thống (duy nhất một tài khoản, tạo bằng lệnh CLI) quản lý mọi thứ tại /admin. Phải dùng tốt trên điện thoại.
+Web thi trắc nghiệm cho lớp học. Học sinh không cần tài khoản: nhập mã bộ đề và tên (tên nhập tự do, được phép trùng) rồi làm bài. Mỗi câu có đồng hồ riêng, chọn rồi bấm Chốt! (hoặc hết giờ) thì thấy đúng/sai, cuối bài xem điểm và bảng xếp hạng đầy đủ. Giáo viên tự đăng ký, tạo bộ đề, sinh mã tham gia, xem kết quả. Admin là chủ hệ thống (duy nhất một tài khoản, tạo bằng lệnh CLI) quản lý mọi thứ tại /admin. Ưu tiên giao diện máy tính (bản demo chạy local); vẫn phải hiển thị tốt trên điện thoại.
 
 ## 2. Công nghệ
 - Backend: Python 3.10+, Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-JWT-Extended, Flask-CORS, Flask-Limiter, python-dotenv, openpyxl, pytest, SQLite.
@@ -14,12 +14,14 @@ Web thi trắc nghiệm cho lớp học. Học sinh không cần tài khoản: n
 - Backend trả JSON: lỗi dạng {"error": "..."}; thành công dạng {"message": "...", ...dữ liệu}. Dùng mã HTTP đúng ngữ nghĩa (400, 401, 403, 404, 409, 413, 429).
 - Validation đăng ký: username 4–30 ký tự gồm chữ, số, dấu _ và dấu chấm; email hợp lệ; mật khẩu tối thiểu 8 ký tự. Backend và frontend phải đồng nhất.
 - Mỗi phase xong: chạy kiểm tra, cập nhật PROGRESS.md, git commit.
+- Mọi chuỗi hiển thị cho người dùng (giao diện, thông báo lỗi từ backend) phải là tiếng Việt CÓ DẤU đầy đủ, lưu file UTF-8.
 
 ## 4. Cấu trúc thư mục
 ```
 backend/
   run.py, requirements.txt, .env.example, .env
-  app/__init__.py (app factory), config.py, extensions.py, models.py, utils.py, cli.py
+  extensions.py, models.py, utils.py, cli.py
+  app/__init__.py (app factory), config.py
   app/routes/: auth.py, play.py, teacher.py, admin.py, uploads.py
   app/services/: codes.py, scoring.py, importer.py, exporter.py
   tests/
@@ -57,12 +59,13 @@ frontend/
 
 ### Máy trạng thái làm bài (server là nguồn sự thật)
 - join tạo Attempt: xáo trộn thứ tự câu và đáp án (nếu bật) rồi lưu vào question_order và choice_orders; phase = question; question_started_at = null.
-- state (hoặc next) ở phase question: nếu question_started_at còn null thì đặt bằng thời điểm hiện tại (giờ bắt đầu tính khi câu được gửi đi lần đầu); trả câu hỏi KHÔNG kèm is_correct, kèm seconds_left. Nếu đã quá hạn (vượt limit + 2 giây ân hạn) thì tự ghi nhận hết giờ, chuyển phase = feedback rồi trả feedback.
-- answer: chỉ nhận cho câu hiện tại ở phase question. Tính time_taken ở server. Quá hạn thì tính hết giờ (bỏ qua lựa chọn). Ghi AttemptAnswer, chuyển phase = feedback, trả feedback gồm đáp án đúng và giải thích.
+- state (hoặc next) ở phase question: nếu question_started_at còn null thì đặt bằng thời điểm hiện tại (giờ bắt đầu tính khi câu được gửi đi lần đầu); trả câu hỏi KHÔNG kèm is_correct, kèm seconds_left. Nếu đã quá hạn (vượt limit) mà chưa có answer nào thì tự ghi nhận không trả lời (timed_out = true, selected_choice_ids rỗng), chuyển phase = feedback rồi trả feedback. Không có thời gian ân hạn.
+- answer: chỉ nhận cho câu hiện tại ở phase question (miễn phase còn là question thì server vẫn nhận, để bù độ trễ mạng khi giao diện tự gửi lúc đồng hồ về 0). Tính time_taken ở server, tối đa bằng limit. Nếu gửi sau limit thì timed_out = true nhưng VẪN chấm đáp án đã chọn. choice_ids rỗng là hợp lệ, tính là không trả lời; chỉ trả 400 khi thiếu hẳn trường. Ghi AttemptAnswer, chuyển phase = feedback, trả feedback gồm đáp án đúng và giải thích.
 - next: chỉ hợp lệ ở phase feedback. Tăng current_index, phase = question, question_started_at = null (giờ của câu kế tiếp chỉ bắt đầu khi câu đó được gửi đi, nên thời gian xem phản hồi không bị tính). Hết câu thì status = finished và tính score, time_spent, finished_at.
 - Không có thao tác quay lại câu trước. Tải lại trang chỉ nhận lại đúng trạng thái hiện tại; không thể trả lời lại.
-- Câu đúng khi tập đáp án chọn khớp hoàn toàn tập đáp án đúng (không chấm điểm một phần). Bỏ qua hoặc hết giờ = sai. score = correct/total × 10, làm tròn 2 chữ số; time_spent = tổng time_taken.
+- Câu đúng khi tập đáp án chọn khớp hoàn toàn tập đáp án đúng (không chấm điểm một phần). Không chọn gì = sai; có chọn thì chấm theo lựa chọn, kể cả khi hết giờ. score = correct/total × 10, làm tròn 2 chữ số; time_spent = tổng time_taken.
 - Học sinh không bao giờ nhận is_correct hay đáp án đúng của một câu trước khi trả lời xong (hoặc hết giờ) câu đó.
+- Tải lại trang (F5) khi đang xem phản hồi: giao diện lấy lại feedback từ state, thanh chờ tự chuyển câu   đếm lại từ đầu (chấp nhận được).
 
 ### Xếp hạng và kết quả
 - Chỉ tính attempt đã finished. Sắp theo score giảm dần, rồi time_spent tăng dần, rồi finished_at tăng dần. Cùng score và time_spent thì chung hạng (1, 2, 2, 4).
@@ -99,7 +102,7 @@ frontend/
   - {status: 'in_progress', phase: 'question', index, total, question: {id, type, content, image_url, choices: [{id, content}]}, time_limit, seconds_left}
   - {status: 'in_progress', phase: 'feedback', index, total, feedback: {question_id, is_correct, timed_out, correct_choice_ids, selected_choice_ids, explanation}, is_last}
   - {status: 'finished'}
-- POST /api/play/<token>/answer {question_id, choice_ids} → {feedback, is_last}
+POST /api/play/<token>/answer {question_id, choice_ids (mảng, có thể rỗng)} → {feedback, is_last}
 - POST /api/play/<token>/next → cùng dạng với state
 - GET /api/play/<token>/result → {student_name, quiz_title, score, correct_answers, total_questions, time_spent, rank, total_participants, show_ranking}
 - GET /api/play/<token>/ranking → {ranking: [{rank, name, score, correct_answers, time_spent, is_me}]}
@@ -131,17 +134,21 @@ frontend/
 - Trang 404.
 
 ### Màn làm bài
-- Thanh tiến độ "Câu x/y"; vòng đếm ngược (đổi màu khi còn từ 5 giây trở xuống); nội dung câu (kèm ảnh nếu có).
+- Thanh tiến độ "Câu x/y"; đồng hồ báo thức (biểu tượng) với số giây còn lại ở giữa mặt đồng hồ, thanh thời gian chạy tuyến tính mượt; khi còn từ 5 giây trở xuống đổi sang màu đỏ đậm và rung lắc; nội dung câu (kèm ảnh nếu có).
 - Thẻ đáp án lớn có chữ cái A–F, dùng các màu tím, xanh dương, cam, hồng. KHÔNG dùng xanh lá hoặc đỏ cho thẻ thường vì hai màu này dành riêng cho đúng/sai.
-- Câu 1 đáp án: chạm là gửi ngay. Câu nhiều đáp án: chọn nhiều rồi bấm "Chốt đáp án".
-- Sau khi trả lời: đáp án đúng thành xanh lá kèm ✓, đáp án sai đã chọn thành đỏ kèm ✗, các thẻ còn lại mờ đi; hiện giải thích (nếu có) và nút "Câu tiếp". Hết giờ thì hiện "Hết giờ!" cùng đáp án đúng.
+- Hình dạng thẻ: câu 1 đáp án (single, true_false) bo tròn góc lớn kèm chấm tròn chọn; câu nhiều đáp án hình chữ nhật góc gần vuông kèm ô vuông đánh dấu. Hình dạng giữ nguyên sau phản hồi.
+- Luồng chung cho mọi câu:
+  1) Chọn đáp án: chỉ hiện hiệu ứng "đang chọn" (phóng to nhẹ khoảng 3%, viền tím đậm, vầng sáng, biểu tượng đã chọn, không có chữ). Chưa hiện đúng/sai, chưa lộ đáp án đúng. Các thẻ khác giữ nguyên. Câu 1 đáp án được đổi lựa chọn trước khi chốt; câu nhiều đáp án bật/tắt từng thẻ.
+  2) Nút "Chốt!" cố định một vị trí cuối khung: xám và khóa khi chưa chọn, tím khi đã chọn, Enter cũng chốt, nhấp nháy nhẹ khi còn ≤5 giây. Bấm Chốt! hoặc hết giờ thì gửi đáp án đang chọn (rỗng nếu chưa chọn).
+  3) Có phản hồi: đáp án đúng đã chọn nền xanh lá đậm (#15803D), chữ trắng, ✓ trong vòng tròn trắng, nảy nhẹ; đáp án sai đã chọn nền đỏ đậm (#B91C1C), chữ trắng, ✗ trong vòng tròn trắng, rung ngang ngắn; đáp án đúng nhưng chưa chọn (câu nhiều đáp án, hoặc hết giờ không chọn gì, kể cả câu 1 đáp án) nền xanh nhạt, viền nét đứt xanh lá dày, chữ xanh đậm, ✓ rỗng và nhãn "Bỏ sót"; thẻ còn lại giữ nguyên, không làm mờ. Hiện giải thích (nếu có). Hết giờ thì hiện "Hết giờ!".
+  4) Không có nút "Câu tiếp": nút Chốt! được thay bằng thanh chạy ngược cùng vị trí, tự sang câu kế sau 5 giây, hoặc 8 giây nếu explanation không rỗng (sau khi cắt khoảng trắng). Câu cuối tự sang trang kết quả sau cùng khoảng thời gian đó. Đếm vẫn chạy khi tab bị ẩn.
 - Không có nút quay lại; cảnh báo khi định rời trang; gửi sự kiện tab_hidden khi chuyển tab.
 
 ### Màn kết quả
 - Điểm lớn, hạng, số câu đúng, thời gian; pháo giấy nếu vào top 3; bảng xếp hạng đầy đủ (dòng của mình nổi bật, cuộn được); nút "Làm bộ đề khác".
 
 ### Phong cách
-- Đột phá, vui nhộn, tươi tắn; thiết kế mobile-first từ 360px; bo góc lớn, nút cao tối thiểu 44px, hiệu ứng nhỏ vui mắt và tôn trọng prefers-reduced-motion.
+- Đột phá, vui nhộn, tươi tắn; thiết kế desktop-first, đẹp nhất ở 1280px, responsive xuống 360px không tràn ngang bo góc lớn, nút cao tối thiểu 44px, hiệu ứng nhỏ vui mắt và tôn trọng prefers-reduced-motion.
 - Đúng/sai luôn kèm biểu tượng (không chỉ dựa vào màu); độ tương phản chữ tối thiểu 4.5:1.
 - Font hỗ trợ đầy đủ tiếng Việt, tự host bằng @fontsource.
 - Mọi biến màu, cỡ chữ, bo góc nằm trong theme.css; dùng Bootstrap 5 làm nền và ghi đè bằng biến CSS.

@@ -19,3 +19,10 @@ Thumbs.db
 # Thu muc tam khi test tay
 tmp/
 *.log
+
+# Ket qua test tam thoi
+*.txt
+
+# Uploads cua test (duoc luu vao tmp_path, khong commit thuc te)
+backend/app/uploads/*
+!backend/app/uploads/.gitkeep

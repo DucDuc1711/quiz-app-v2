@@ -1,65 +1,67 @@
 import { ref, computed } from 'vue'
 
-export function useCountdown(initialSeconds, { onTick, onFinish } = {}) {
-  const seconds = ref(Math.max(0, Math.floor(initialSeconds || 0)))
+// Dong ho thoi gian thuc theo chuan gio (deadline), khong dem so tick.
+// Tinh toan tu moc deadline nhan duoc tu server, hoat dong khi tab an
+// va dong bo lai khi quay lai tab qua resync().
+export function useCountdown({ onFinish } = {}) {
+  const seconds = ref(0)
   const running = ref(false)
-  let timer = null
+  const deadline = ref(null) // moc thoi gian (ms), null khi khong chay
+  let raf = null
 
   const formatted = computed(() => {
-    const m = Math.floor(seconds.value / 60)
-    const s = seconds.value % 60
+    const total = Math.max(0, Math.ceil(seconds.value || 0))
+    const m = Math.floor(total / 60)
+    const s = total % 60
     return m + ':' + String(s).padStart(2, '0')
   })
 
   function tick() {
-    if (!running.value) return
-    if (onTick) onTick(seconds.value)
-    if (seconds.value <= 0) {
+    if (!running.value || !deadline.value) return
+    const remain = deadline.value - Date.now()
+    if (remain <= 0) {
+      seconds.value = 0
       stop()
-      running.value = false
       if (onFinish) onFinish()
       return
     }
-    seconds.value -= 1
+    seconds.value = Math.ceil(remain / 1000)
+    raf = requestAnimationFrame(tick)
   }
 
-  function start(startSeconds) {
+  function start(secondsLeft) {
     stop()
-    seconds.value = Math.max(0, Math.floor(startSeconds || 0))
+    const left = Math.max(0, Math.ceil(secondsLeft || 0))
+    seconds.value = left
+    deadline.value = Date.now() + left * 1000
     running.value = true
     tick()
-    timer = setInterval(tick, 1000)
   }
 
   function stop() {
     running.value = false
-    if (timer) {
-      clearInterval(timer)
-      timer = null
+    deadline.value = null
+    if (raf) {
+      cancelAnimationFrame(raf)
+      raf = null
     }
   }
 
-  function reset(nextSeconds) {
-    stop()
-    seconds.value = Math.max(0, Math.floor(nextSeconds || 0))
-  }
-
-  function resync(serverSeconds) {
-    const v = Math.max(0, Math.floor(serverSeconds || 0))
-    seconds.value = v
-    if (v <= 0 && running.value) {
-      stop()
-      if (onFinish) onFinish()
-    }
+  // Dong bo lai voi server khi quay lai tab (seconds_left tu server).
+  function resync(secondsLeft) {
+    if (!running.value) return
+    const left = Math.max(0, Math.ceil(secondsLeft || 0))
+    seconds.value = left
+    deadline.value = Date.now() + left * 1000
   }
 
   return {
     seconds,
     running,
+    deadline,
     formatted,
     start,
     stop,
-    reset,
     resync,
   }
 }

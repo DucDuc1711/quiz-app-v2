@@ -14,11 +14,13 @@
   --q-d: #DB2777;
   --q-e: #0891B2;
   --q-f: #D97706;
-  --q-success: #16A34A;
+  --q-success: #15803D;
   --q-success-bg: #DCFCE7;
+  --q-success-dark: #14532D;
   --q-success-text: #14532D;
-  --q-danger: #DC2626;
+  --q-danger: #B91C1C;
   --q-danger-bg: #FEE2E2;
+  --q-danger-dark: #7F1D1D;
   --q-danger-text: #7F1D1D;
   --q-bg: #FBFDFF;
   --q-card: #FFFFFF;
@@ -140,9 +142,9 @@ a:hover { text-decoration: underline; }
 .q-ring-bg { stroke: #E2E8F0; stroke-width: 4; fill: none; }
 .q-ring-fg { transition: stroke-dashoffset var(--q-transition), stroke var(--q-transition); stroke-linecap: round; fill: none; stroke-width: 4; }
 .q-ring--warn { animation: none; }
-.q-ring--warn .q-ring-fg { stroke: #DC2626 !important; }
+.q-ring--warn .q-ring-fg { stroke: var(--q-danger, #B91C1C); }
 .q-ring-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.15rem; font-weight: 700; }
-.q-ring-text--warn { color: #DC2626; }
+.q-ring-text--warn { color: var(--q-danger, #B91C1C); }
 .q-question-panel { background: var(--q-card); border: 1px solid var(--q-border); border-radius: var(--q-radius-xl); padding: 28px 32px; box-shadow: var(--q-shadow); }
 .q-question-content { font-size: 1.28rem; font-weight: 600; color: var(--q-text); line-height: 1.55; margin-bottom: 26px; white-space: pre-line; min-height: 96px; }
 .q-question-img { margin-top: 16px; max-height: 240px; border-radius: var(--q-radius-md); border: 1px solid var(--q-border); background: #fff; }

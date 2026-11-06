@@ -1,7 +1,7 @@
 import pytest
 from app import create_app
 from extensions import db
-from config import TestingConfig
+from app.config import TestingConfig
 
 
 @pytest.fixture

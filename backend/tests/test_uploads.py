@@ -3,6 +3,7 @@ import pytest
 from werkzeug.security import generate_password_hash
 from extensions import db
 from models import User
+from app.routes import uploads as uploads_module
 
 
 PNG_MIN = b"\x89PNG\r\n\x1a\n"
@@ -41,6 +42,12 @@ def get_admin_token(client):
     })
     assert resp.status_code == 200, resp.get_json()
     return resp.get_json()["access_token"]
+
+
+@pytest.fixture(autouse=True)
+def _upload_tmp(tmp_path, monkeypatch):
+    monkeypatch.setattr(uploads_module, "UPLOAD_FOLDER", str(tmp_path))
+    tmp_path.mkdir(parents=True, exist_ok=True)
 
 
 def _auth_headers(token):

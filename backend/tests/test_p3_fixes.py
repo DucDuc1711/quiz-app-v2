@@ -124,7 +124,7 @@ def test_play_flow_seconds_left_and_answer_validation(client):
         "question_id": s_data["question"]["id"]
     })
     assert bad_ans.status_code == 400
-    assert "Thieu question_id hoac choice_ids" in bad_ans.get_json()["error"]
+    assert "Thiếu question_id hoặc choice_ids." in bad_ans.get_json()["error"]
 
     # Answer đúng -> feedback có correct_choice_ids không rỗng
     correct_id = next(c["id"] for c in s_data["question"]["choices"] if c["content"] == "Blue")

@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from flask import Flask, jsonify
 
-from config import Config
+from app.config import Config
 from extensions import db, migrate, jwt, cors, limiter
 
 
