@@ -107,7 +107,6 @@ def get_quiz(quiz_id):
             "type": q.type,
             "content": q.content,
             "image_url": q.image_url,
-            "explanation": q.explanation,
             "order_num": q.order_num,
             "time_limit": q.time_limit,
             "choices": choices_data
@@ -358,7 +357,6 @@ def get_library_quiz(quiz_id):
         questions_data.append({
             "type": q.type,
             "content": q.content,
-            "explanation": q.explanation,
             "image_url": q.image_url,
             "time_limit": q.time_limit,
             "order_num": q.order_num,
@@ -400,7 +398,7 @@ def clone_quiz(quiz_id):
             type=q.type,
             content=q.content,
             image_url=q.image_url,
-            explanation=q.explanation,
+
             order_num=q.order_num,
             time_limit=q.time_limit,
         )
@@ -464,7 +462,7 @@ def import_quiz(quiz_id):
             type=q_data['type'],
             content=q_data['content'],
             image_url=q_data.get('image_url'),
-            explanation=q_data.get('explanation'),
+
             time_limit=q_data.get('time_limit'),
         )
         db.session.add(new_q)
@@ -538,7 +536,7 @@ def duplicate_quiz(quiz_id):
             type=q.type,
             content=q.content,
             image_url=q.image_url,
-            explanation=q.explanation,
+
             order_num=q.order_num,
             time_limit=q.time_limit,
         )

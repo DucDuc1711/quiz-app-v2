@@ -16,11 +16,12 @@
   --q-f: #D97706;
   --q-success: #15803D;
   --q-success-bg: #DCFCE7;
-  --q-success-dark: #14532D;
+  --q-success: #15803D;
+  --q-success-bg: #DCFCE7;
   --q-success-text: #14532D;
   --q-danger: #B91C1C;
   --q-danger-bg: #FEE2E2;
-  --q-danger-dark: #7F1D1D;
+  --q-danger-text: #7F1D1D;
   --q-danger-text: #7F1D1D;
   --q-bg: #FBFDFF;
   --q-card: #FFFFFF;

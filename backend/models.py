@@ -51,7 +51,6 @@ class Question(db.Model):
     type = db.Column(db.String(20), nullable=False)  # 'single' | 'multiple' | 'true_false'
     content = db.Column(db.String(1000), nullable=False)
     image_url = db.Column(db.String(500), nullable=True)
-    explanation = db.Column(db.Text, nullable=True)
     order_num = db.Column(db.Integer, nullable=False, default=0)
     time_limit = db.Column(db.Integer, nullable=True)
 
@@ -81,6 +80,7 @@ class Attempt(db.Model):
     phase = db.Column(db.String(20), nullable=False, default="question")  # 'question' | 'feedback'
     current_index = db.Column(db.Integer, nullable=False, default=0)
     question_started_at = db.Column(db.DateTime, nullable=True)
+    feedback_started_at = db.Column(db.DateTime, nullable=True)
     question_order = db.Column(db.JSON, nullable=True)  # danh sách id câu
     choice_orders = db.Column(db.JSON, nullable=True)  # {question_id: [choice_id, ...]}
     total_questions = db.Column(db.Integer, nullable=False, default=0)

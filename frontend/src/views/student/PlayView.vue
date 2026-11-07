@@ -85,7 +85,11 @@ async function loadState() {
       if (d.question) question.value = d.question
       selected.value = (feedback.value && feedback.value.selected_choice_ids) || []
       cdStop()
-      const delay = (feedback.value && feedback.value.explanation && feedback.value.explanation.trim()) ? 8 : 5
+      const delay = (d.feedback && d.feedback.feedback_seconds_left) ? d.feedback.feedback_seconds_left : 3
+      if (delay <= 0) {
+        nextQuestion()
+        return
+      }
       startAdvanceTimer(delay)
       return
     }
@@ -107,7 +111,7 @@ function toggleChoice(id) {
 
 function selectChoice(id) {
   if (answering.value || phase.value !== 'question') return
-  if (question.value.type === 'single') {
+  if (question.value.type === 'single' || question.value.type === 'true_false') {
     selected.value = [id]
   } else {
     toggleChoice(id)
@@ -129,7 +133,12 @@ async function submitAnswer(ids) {
     isLast.value = res.data.is_last
     cdStop()
     stopAdvanceTimer()
-    const delay = (fb && fb.explanation && fb.explanation.trim()) ? 8 : 5
+    answering.value = false
+    const delay = (fb && fb.feedback_seconds_left) ? fb.feedback_seconds_left : 3
+    if (delay <= 0) {
+      nextQuestion()
+      return
+    }
     advanceTotalMs.value = delay
     startAdvanceTimer(delay)
   } catch (e) {
@@ -264,8 +273,7 @@ function onBeforeUnload(e) {
           <div class="q-play-counter">Câu <span style="color: var(--q-brand); font-weight: 700">{{ index + 1 }}</span> / {{ total }}</div>
         </div>
         <div class="q-countdown-col">
-          <CountdownRing :seconds="seconds" :limit="timeLimit" :deadline="deadline" />
-          <div class="q-ring-text" :class="{ 'q-ring-text--warn': seconds <= 5 }">{{ formatted }}</div>
+          <CountdownRing :seconds="seconds" :limit="timeLimit" :deadline="deadline" :hide="phase === 'feedback'" />
         </div>
       </div>
       <div class="q-question-panel" v-if="question">
@@ -285,7 +293,6 @@ function onBeforeUnload(e) {
         </div>
         <div v-if="feedback" class="q-feedback" :class="{ 'q-feedback--ok': feedback.is_correct, 'q-feedback--bad': !feedback.is_correct && !feedback.timed_out, 'q-feedback--timeout': feedback.timed_out }">
           <span class="q-feedback-icon">{{ feedback.timed_out ? 'Hết giờ!' : (feedback.is_correct ? 'Chính xác!' : 'Sai rồi!') }}</span>
-          <div v-if="feedback.explanation" class="q-feedback-expl">{{ feedback.explanation }}</div>
         </div>
         <div v-if="phase === 'question'" class="q-actions">
           <button

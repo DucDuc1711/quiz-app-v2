@@ -5,6 +5,7 @@ const props = defineProps({
   seconds: { type: Number, default: 0 },
   limit: { type: Number, default: 30 },
   deadline: { type: Number, default: null }, // moc thoi gian (ms) hoac null
+  hide: { type: Boolean, default: false }, // an o phase phan hoi
 })
 
 const radius = 24
@@ -12,7 +13,7 @@ const cx = 28
 const cy = 28
 const circumference = 2 * Math.PI * radius
 
-const ratio = ref(1) // ty le thoi gian con lai (0 den 1), cap nhat tu tu
+const ratio = ref(1)
 let raf = null
 
 function tick() {
@@ -34,7 +35,6 @@ onUnmounted(() => {
   }
 })
 
-// Khi deadline duoc cap nhat tu cha (resync), tiep tuc chay tick doc gia tri moi.
 watch(
   () => props.deadline,
   () => {
@@ -46,14 +46,7 @@ const warn = computed(() => (props.seconds || 0) <= 5 && (props.seconds || 0) > 
 </script>
 
 <template>
-  <div class="q-ring-wrap" :class="{ 'q-ring--warn': warn }">
-    <!-- Bieu tuong dong ho bao thuc (SVG) -->
-    <svg class="q-clock-icon" viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="9.5" fill="none" stroke="#94A3B8" stroke-width="1.5"></circle>
-      <path d="M12 7V5l2 2-2 2" fill="none" stroke="#64748B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-      <circle cx="12" cy="12" r="1.2" fill="#64748B"></circle>
-    </svg>
-
+  <div class="q-ring-wrap" :class="{ 'q-ring--warn': warn, 'q-ring--hide': props.hide }">
     <svg class="q-ring" viewBox="0 0 56 56">
       <circle class="q-ring-bg" :cx="cx" :cy="cy" :r="radius" stroke="#E2E8F0" stroke-width="4" fill="none"></circle>
       <circle
@@ -70,7 +63,6 @@ const warn = computed(() => (props.seconds || 0) <= 5 && (props.seconds || 0) > 
       ></circle>
     </svg>
 
-    <!-- So giay nguyen (lam tron len) o giua mat dong ho -->
     <div class="q-clock-number" :class="{ 'q-clock-number--warn': warn }">{{ Math.max(0, Math.ceil(seconds || 0)) }}</div>
   </div>
 </template>
@@ -84,11 +76,8 @@ const warn = computed(() => (props.seconds || 0) <= 5 && (props.seconds || 0) > 
   align-items: center;
   justify-content: center;
 }
-.q-clock-icon {
-  position: absolute;
-  width: 30px;
-  height: 30px;
-  z-index: 2;
+.q-ring-wrap.q-ring--hide {
+  display: none;
 }
 .q-ring {
   width: 88px;

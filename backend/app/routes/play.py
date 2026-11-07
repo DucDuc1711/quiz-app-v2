@@ -8,6 +8,8 @@ from utils import error_response
 
 play_bp = Blueprint("play", __name__)
 
+FEEDBACK_SECONDS = 3
+
 def _now():
     return datetime.now(timezone.utc)
 
@@ -17,6 +19,62 @@ def _ensure_aware(dt):
     if dt is not None and dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt
+
+
+def _feedback_seconds_left(attempt):
+    if attempt.feedback_started_at is None:
+        return FEEDBACK_SECONDS
+    started = _ensure_aware(attempt.feedback_started_at)
+    elapsed = (_now() - started).total_seconds()
+    return round(max(0.0, FEEDBACK_SECONDS - elapsed), 2)
+
+
+def _build_question_payload(attempt, quiz, question, seconds_left):
+    choices = []
+    for c in question.choices:
+        choices.append({"id": c.id, "content": c.content})
+    return {
+        "status": "in_progress",
+        "phase": "question",
+        "index": attempt.current_index,
+        "total": attempt.total_questions,
+        "question": {
+            "id": question.id,
+            "type": question.type,
+            "content": question.content,
+            "image_url": question.image_url,
+            "choices": choices,
+        },
+        "time_limit": question.time_limit if question.time_limit is not None else quiz.question_time,
+        "seconds_left": max(0, int(seconds_left)) if seconds_left is not None else None,
+    }
+
+
+def _build_feedback_payload(attempt, answer, question):
+    correct_choice_ids = [c.id for c in question.choices if c.is_correct]
+    choices = [{"id": c.id, "content": c.content} for c in question.choices]
+    return {
+        "status": "in_progress",
+        "phase": "feedback",
+        "index": attempt.current_index,
+        "total": attempt.total_questions,
+        "question": {
+            "id": question.id,
+            "type": question.type,
+            "content": question.content,
+            "image_url": question.image_url,
+            "choices": choices,
+        },
+        "feedback": {
+            "question_id": question.id,
+            "is_correct": answer.is_correct,
+            "timed_out": answer.timed_out,
+            "correct_choice_ids": correct_choice_ids,
+            "selected_choice_ids": answer.selected_choice_ids or [],
+        },
+        "feedback_seconds_left": _feedback_seconds_left(attempt),
+        "is_last": attempt.current_index >= attempt.total_questions - 1,
+    }
 
 
 def _clean_name(name):
@@ -197,8 +255,8 @@ def _build_feedback_payload(attempt, answer, question):
             "timed_out": answer.timed_out,
             "correct_choice_ids": correct_choice_ids,
             "selected_choice_ids": answer.selected_choice_ids or [],
-            "explanation": question.explanation,
         },
+        "feedback_seconds_left": _feedback_seconds_left(attempt),
         "is_last": attempt.current_index >= attempt.total_questions - 1,
     }
 
@@ -247,6 +305,13 @@ def state(token):
                 time_taken=min(elapsed, time_limit),
             )
             db.session.add(answer)
+            attempt.phase = "feedback"
+            if attempt.feedback_started_at is None:
+                attempt.feedback_started_at = now
+            db.session.commit()
+        elif attempt.feedback_started_at is None:
+            # Dữ liệu cũ: gán feedback_started_at = bây giờ.
+            attempt.feedback_started_at = now
             db.session.commit()
         return jsonify(_build_feedback_payload(attempt, answer, question)), 200
 
@@ -263,6 +328,7 @@ def state(token):
         )
         db.session.add(answer)
         attempt.phase = "feedback"
+        attempt.feedback_started_at = now
         db.session.commit()
         return jsonify(_build_feedback_payload(attempt, answer, question)), 200
 
@@ -323,9 +389,14 @@ def answer(token):
     if existing is not None:
         return error_response("Câu hỏi này đã được trả lời rồi.", 409)
 
+    # Kiểm tra câu single/true_false chỉ được chọn tối đa 1 đáp án.
+    unique_choice_ids = list(dict.fromkeys(choice_ids))
+    if question.type in ("single", "true_false") and len(unique_choice_ids) > 1:
+        return error_response("Câu này chỉ được chọn một đáp án.", 400)
+
     correct_ids = [c.id for c in question.choices if c.is_correct]
-    is_correct = check_answer(choice_ids, correct_ids)
-    selected = choice_ids
+    is_correct = check_answer(unique_choice_ids, correct_ids)
+    selected = unique_choice_ids
 
     answer = AttemptAnswer(
         attempt_id=attempt.id,
@@ -338,6 +409,7 @@ def answer(token):
     db.session.add(answer)
 
     attempt.phase = "feedback"
+    attempt.feedback_started_at = now
     db.session.commit()
 
     return jsonify({
@@ -347,8 +419,8 @@ def answer(token):
             "timed_out": timed_out,
             "correct_choice_ids": [c.id for c in question.choices if c.is_correct],
             "selected_choice_ids": selected,
-            "explanation": question.explanation,
         },
+        "feedback_seconds_left": FEEDBACK_SECONDS,
         "is_last": attempt.current_index >= attempt.total_questions - 1,
     }), 200
 
@@ -367,6 +439,7 @@ def next_question(token):
     attempt.current_index += 1
     attempt.phase = "question"
     attempt.question_started_at = None
+    attempt.feedback_started_at = None
 
     if attempt.current_index >= attempt.total_questions:
         attempt.status = "finished"

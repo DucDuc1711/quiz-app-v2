@@ -21,13 +21,13 @@ def generate_import_template():
     headers = [
         "Câu hỏi", "Loại (1 đáp án / nhiều đáp án / đúng-sai)",
         "Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D", "Đáp án E", "Đáp án F",
-        "Đáp án đúng", "Giải thích", "Thời gian (giây)"
+        "Đáp án đúng", "Thời gian (giây)"
     ]
     ws.append(headers)
     ws.append([
         "Thủ đô của Việt Nam là gì?", "1 đáp án",
         "Hà Nội", "TP.HCM", "Đà Nẵng", "Cần Thơ", "", "",
-        "A", "Hà Nội là thủ đô của Việt Nam", 30
+        "A", 30
     ])
     output = io.BytesIO()
     wb.save(output)
@@ -143,11 +143,11 @@ def process_imported_questions(rows):
             errors.append(f"dòng {row_num} – Câu hỏi nhiều đáp án phải có ít nhất 1 đáp án đúng")
             continue
 
-        explanation = row[9].strip() if len(row) > 9 and row[9] else None
+        time_col_idx = 10 if len(row) >= 11 else 9
         time_limit = None
-        if len(row) > 10 and row[10]:
+        if len(row) > time_col_idx and row[time_col_idx]:
             try:
-                time_limit = int(float(str(row[10]).strip()))
+                time_limit = int(float(str(row[time_col_idx]).strip()))
                 if not (5 <= time_limit <= 600):
                     time_limit = None
             except ValueError:
@@ -165,7 +165,6 @@ def process_imported_questions(rows):
             "type": q_type,
             "content": content,
             "choices": formatted_choices,
-            "explanation": explanation,
             "time_limit": time_limit
         })
 

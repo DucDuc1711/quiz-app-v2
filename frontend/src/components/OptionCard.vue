@@ -108,44 +108,34 @@ function pick() {
   box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.2);
 }
 .q-opt-correct {
-  background: var(--q-success-dark, #14532D);
-  border-color: var(--q-success, #15803D);
-  color: #fff;
-  animation: q-correct-bounce 0.6s ease;
+  background: var(--q-success-bg);
+  border: 2px solid var(--q-success);
+  color: var(--q-success-text);
+  animation: none;
 }
 .q-opt-wrong {
-  background: var(--q-danger-dark, #7F1D1D);
-  border-color: var(--q-danger, #B91C1C);
-  color: #fff;
-  animation: q-wrong-shake 0.5s ease;
+  background: var(--q-danger-bg);
+  border: 2px solid var(--q-danger);
+  color: var(--q-danger-text);
+  animation: none;
 }
 .q-opt-skipped {
-  background: #DCFCE7;
-  border: 2px dashed #15803D;
-  color: #14532D;
+  background: var(--q-success-bg);
+  border: 2px dashed var(--q-success);
+  color: var(--q-success-text);
 }
 .q-opt-mark {
   font-weight: 800;
   font-size: 1.15rem;
   margin-left: auto;
 }
-.q-opt-mark-ok { color: #fff; }
-.q-opt-mark-wrong { color: #fff; }
-.q-opt-mark-skipped { color: #14532D; }
+.q-opt-mark-ok { color: var(--q-success); }
+.q-opt-mark-wrong { color: var(--q-danger); }
+.q-opt-mark-skipped { color: var(--q-success); }
 .q-opt-label {
   font-size: 0.78rem;
   font-weight: 700;
   margin-left: 4px;
-}
-@keyframes q-correct-bounce {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-@keyframes q-wrong-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-4px); }
-  75% { transform: translateX(4px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .q-opt-correct { animation: none; }
