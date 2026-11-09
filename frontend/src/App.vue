@@ -2,10 +2,13 @@
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { onMounted, onUnmounted, computed } from 'vue'
+import ToastHost from '@/components/ToastHost.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
 auth.init()
+
+const isTeacherZone = computed(() => router.currentRoute.value.path.startsWith('/teacher'))
 
 const userLabel = computed(() => {
   if (!auth.user) return null
@@ -33,11 +36,14 @@ function logout() {
 
 <template>
   <div class="q-app">
+    <ToastHost />
     <header class="q-header">
       <div class="q-container q-inner">
         <div class="q-brand" @click="router.push('/')"><span class="q-mark">Q</span>uiz App</div>
         <nav class="q-nav-links">
           <a class="q-btn q-btn-outline" :class="{ 'q-btn-primary': $route.path === '/' }" @click="router.push('/')">Trang chủ</a>
+          <a v-if="isTeacherZone && auth.isAuthenticated" class="q-btn q-btn-outline" @click="router.push({ name: 'teacher' })">Bộ đề của tôi</a>
+          <a v-if="isTeacherZone && auth.isAuthenticated" class="q-btn q-btn-outline" @click="router.push({ name: 'teacher-library' })">Thư viện</a>
           <span v-if="auth.isAuthenticated" class="q-text-soft">{{ userLabel }}</span>
           <a v-if="auth.isAuthenticated" class="q-btn q-btn-danger" @click="logout">Đăng xuất</a>
           <a v-if="!auth.isAuthenticated" class="q-btn q-btn-outline" @click="router.push('/teacher/login')">Đăng nhập giáo viên</a>

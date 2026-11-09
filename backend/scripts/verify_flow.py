@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
-"""Script kiểm tra tự động toàn bộ luồng làm bài (verify_flow.py).
-Chạy từ thư mục backend bằng: python scripts/verify_flow.py
+"""Script kiem tra tu dong toan bo luong lam bai (verify_flow.py).
+Chay tu thu muc backend bang: python scripts/verify_flow.py
 """
 import sys
 import os
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
 from datetime import datetime, timezone, timedelta
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -92,7 +98,13 @@ def run_verification():
 
     r1 = client.get(f'/api/play/{token}/state')
     r2 = client.get(f'/api/play/{token}/state')
-    check(r1.get_json()['phase'] == 'feedback' and r1.get_json() == r2.get_json(), "State sau answer là feedback, gọi nhiều lần ổn định")
+    j1, j2 = r1.get_json(), r2.get_json()
+    for k in j1:
+        if k == 'feedback_seconds_left':
+            continue
+        check(j1.get(k) == j2.get(k), f"State field {k} giong nhau hai lan goi")
+    check(j1['phase'] == 'feedback', "State sau answer la feedback")
+    check(0 <= j1.get('feedback_seconds_left', 0) <= 3, "feedback_seconds_left trong khoang 0-3")
 
     r = client.post(f'/api/play/{token}/answer', json={'question_id': q1_id, 'choice_ids': c1_correct})
     check(r.status_code == 409, "Trả lời lại câu cũ trả 409")

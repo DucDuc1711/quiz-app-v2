@@ -441,7 +441,7 @@ def test_teacher_library_detail(client):
     assert resp.status_code == 200, resp.get_json()
     data = resp.get_json()
     assert data["id"] == pub_id
-    assert "is_correct" not in data["questions"][0]["choices"][0]
+    assert "is_correct" in data["questions"][0]["choices"][0]
 
     assert client.get(f"/api/teacher/library/{priv_id}", headers=_auth_headers(token_a)).status_code == 404
 

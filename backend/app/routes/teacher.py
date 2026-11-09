@@ -85,7 +85,19 @@ def create_quiz():
 def get_quizzes():
     current_user_id = int(get_jwt_identity())
     quizzes = Quiz.query.filter_by(owner_id=current_user_id).all()
-    return jsonify([{"id": q.id, "title": q.title, "access_code": q.access_code} for q in quizzes])
+    return jsonify([
+        {
+            "id": q.id,
+            "title": q.title,
+            "access_code": q.access_code,
+            "question_count": len(q.questions),
+            "attempt_count": len(q.attempts),
+            "is_open": q.is_open,
+            "is_public": q.is_public,
+            "updated_at": q.updated_at.isoformat() if q.updated_at else None,
+        }
+        for q in quizzes
+    ])
 
 @teacher_bp.route('/quizzes/<int:quiz_id>', methods=['GET'])
 def get_quiz(quiz_id):
@@ -149,18 +161,50 @@ def update_quiz(quiz_id):
     data = request.get_json() or {}
     quiz.title = data.get('title', quiz.title)
     quiz.description = data.get('description', quiz.description)
+    quiz.question_time = data.get('question_time', quiz.question_time)
+    quiz.shuffle_questions = data.get('shuffle_questions', quiz.shuffle_questions)
+    quiz.shuffle_choices = data.get('shuffle_choices', quiz.shuffle_choices)
+    quiz.show_ranking = data.get('show_ranking', quiz.show_ranking)
+    quiz.allow_retake = data.get('allow_retake', quiz.allow_retake)
     quiz.is_public = data.get('is_public', quiz.is_public)
+    quiz.is_open = data.get('is_open', quiz.is_open)
+    quiz.tags = data.get('tags', quiz.tags)
+
+    open_at = data.get('open_at')
+    close_at = data.get('close_at')
+    if open_at is not None:
+        quiz.open_at = _parse_iso(open_at) if open_at != '' else None
+    if close_at is not None:
+        quiz.close_at = _parse_iso(close_at) if close_at != '' else None
+    if quiz.open_at and quiz.close_at and quiz.close_at <= quiz.open_at:
+        return jsonify({"error": "Thời gian đóng phải sau thời gian mở."}), 400
+
     db.session.commit()
-    return jsonify({"message": "Cap nhat bo de thanh cong", "quiz": {"id": quiz.id, "title": quiz.title, "description": quiz.description, "is_public": quiz.is_public}}), 200
+    return jsonify({"message": "Cap nhat bo de thanh cong", "quiz": {
+        "id": quiz.id, "title": quiz.title, "description": quiz.description,
+        "is_public": quiz.is_public, "is_open": quiz.is_open,
+        "question_time": quiz.question_time, "open_at": quiz.open_at.isoformat() if quiz.open_at else None,
+        "close_at": quiz.close_at.isoformat() if quiz.close_at else None,
+    }}), 200
+
+
+def _parse_iso(value):
+    from datetime import datetime
+    if isinstance(value, str):
+        return datetime.fromisoformat(value)
+    return value
 
 @teacher_bp.route('/quizzes/<int:quiz_id>/publish', methods=['PATCH'])
 def publish_quiz(quiz_id):
     current_user_id = int(get_jwt_identity())
     quiz = Quiz.query.filter_by(id=quiz_id, owner_id=current_user_id).first_or_404()
     data = request.get_json() or {}
-    quiz.is_public = data.get('is_public', not quiz.is_public)
+    if 'is_public' in data:
+        quiz.is_public = data.get('is_public')
+    if 'is_open' in data:
+        quiz.is_open = data.get('is_open')
     db.session.commit()
-    return jsonify({"message": "Da cap nhat is_public", "is_public": quiz.is_public}), 200
+    return jsonify({"message": "Da cap nhat trang thai bo de", "is_public": quiz.is_public, "is_open": quiz.is_open}), 200
 
 @teacher_bp.route('/quizzes/<int:quiz_id>/questions/order', methods=['PUT'])
 def reorder_questions(quiz_id):
@@ -259,6 +303,10 @@ def get_attempts(quiz_id):
             "id": a.id,
             "student_name": a.student_name,
             "score": a.score,
+            "correct_answers": a.correct_answers,
+            "total_questions": a.total_questions,
+            "time_spent": round(a.time_spent, 1) if a.time_spent is not None else 0,
+            "tab_switch_count": a.tab_switch_count,
             "status": a.status,
             "started_at": a.started_at.isoformat() if a.started_at else None,
             "finished_at": a.finished_at.isoformat() if a.finished_at else None,
@@ -271,6 +319,8 @@ def get_stats(quiz_id):
     quiz = Quiz.query.filter_by(id=quiz_id, owner_id=current_user_id).first_or_404()
     total = len(quiz.attempts)
     avg_score = sum(a.score for a in quiz.attempts) / total if total > 0 else 0
+    max_score = max((a.score for a in quiz.attempts), default=0)
+    min_score = min((a.score for a in quiz.attempts), default=0)
 
     # Tỉ lệ sai từng câu
     question_stats = []
@@ -293,6 +343,8 @@ def get_stats(quiz_id):
     return jsonify({
         "total_attempts": total,
         "average_score": round(avg_score, 2),
+        "max_score": round(max_score, 2),
+        "min_score": round(min_score, 2),
         "questions": question_stats,
     }), 200
 
@@ -352,6 +404,7 @@ def get_library_quiz(quiz_id):
         for c in sorted(q.choices, key=lambda x: x.order_num):
             choices_data.append({
                 "content": c.content,
+                "is_correct": c.is_correct,
                 "order_num": c.order_num,
             })
         questions_data.append({

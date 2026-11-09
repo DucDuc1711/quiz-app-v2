@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 
-const TOKEN_KEY = 'quiz_token'
-const USER_KEY = 'quiz_user'
+const TOKEN_KEY = 'quiz_teacher_token'
+const USER_KEY = 'quiz_teacher_user'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -14,11 +14,24 @@ export const useAuthStore = defineStore('auth', {
     isAdmin: (state) => state.user && state.user.role === 'admin',
   },
   actions: {
-    init() {
+    async init() {
       try {
-        this.user = JSON.parse(localStorage.getItem(USER_KEY) || 'null')
+        const raw = localStorage.getItem(USER_KEY)
+        this.user = raw ? JSON.parse(raw) : null
       } catch (_) {
         this.user = null
+      }
+      if (this.token) {
+        try {
+          const api = (await import('@/api/axios')).default
+          const res = await api.get('/auth/me')
+          if (res.data && res.data.user) {
+            this.user = res.data.user
+            localStorage.setItem(USER_KEY, JSON.stringify(this.user))
+          }
+        } catch (_) {
+          this.clearAuth()
+        }
       }
     },
     setAuth(token, user) {
