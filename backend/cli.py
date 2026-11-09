@@ -14,32 +14,32 @@ def register_cli(app):
     @app.cli.command("create-admin")
     @with_appcontext
     def create_admin():
-        """Tao tai khoan admin duy nhat tu bien moi truong."""
+        """Tạo tài khoản admin duy nhất từ biến môi trường."""
         username = current_app.config.get("ADMIN_USERNAME") or os.environ.get("ADMIN_USERNAME")
         email = current_app.config.get("ADMIN_EMAIL") or os.environ.get("ADMIN_EMAIL")
         password = current_app.config.get("ADMIN_PASSWORD") or os.environ.get("ADMIN_PASSWORD")
 
         if not username or not email or not password:
-            click.echo("Thieu ADMIN_USERNAME, ADMIN_EMAIL hoac ADMIN_PASSWORD trong .env")
+            click.echo("Thiếu ADMIN_USERNAME, ADMIN_EMAIL hoặc ADMIN_PASSWORD trong .env")
             return
 
         if len(password) < 8:
-            click.echo("Mat khau admin phai it thieu 8 ky tu.")
+            click.echo("Mật khẩu admin phải ít nhất 8 ký tự.")
             return
         if password == "123456":
-            click.echo("Mat khau admin khong duoc bang 123456.")
+            click.echo("Mật khẩu admin không được bằng 123456.")
             return
 
         existing_admin = User.query.filter_by(role="admin").first()
         if existing_admin:
-            click.echo(f"He thong da co admin: {existing_admin.username}. Khong them them.")
+            click.echo(f"Hệ thống đã có admin: {username}. Không thêm nữa.")
             return
 
         if User.query.filter_by(username=username).first():
-            click.echo(f"Username '{username}' da ton tai.")
+            click.echo(f"Username '{username}' đã tồn tại.")
             return
         if User.query.filter_by(email=email).first():
-            click.echo(f"Email '{email}' da ton tai.")
+            click.echo(f"Email '{email}' đã tồn tại.")
             return
 
         admin = User(
@@ -51,7 +51,7 @@ def register_cli(app):
         )
         db.session.add(admin)
         db.session.commit()
-        click.echo(f"Da tao admin: {username} ({email})")
+        click.echo(f"Đã tạo admin: {username} ({email})")
 
     @app.cli.command("seed-samples")
     @with_appcontext
@@ -59,11 +59,11 @@ def register_cli(app):
         """Tao 2 bo de mau chu admin, is_public=True, co ma tham gia."""
         admin = User.query.filter_by(role="admin").first()
         if not admin:
-            click.echo("Chua co admin. Chay flask create-admin truoc.")
+            click.echo("Chưa có admin. Chạy flask create-admin trước.")
             return
 
         if Quiz.query.filter_by(title="Lap trinh Python co ban").first():
-            click.echo("Du lieu mau da duoc seed truoc do. Khong nhan nay.")
+            click.echo("Dữ liệu mẫu đã được seed trước đó. Không nhận nữa.")
             return
 
         def _create_quiz(title, description, questions_data):
@@ -145,4 +145,4 @@ def register_cli(app):
         )
 
         db.session.commit()
-        click.echo("Da seed 2 bo de mau cho admin.")
+        click.echo("Đã seed 2 bộ đề mẫu cho admin.")

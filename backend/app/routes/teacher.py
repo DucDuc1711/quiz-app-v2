@@ -180,7 +180,7 @@ def update_quiz(quiz_id):
         return jsonify({"error": "Thời gian đóng phải sau thời gian mở."}), 400
 
     db.session.commit()
-    return jsonify({"message": "Cap nhat bo de thanh cong", "quiz": {
+    return jsonify({"message": "Cập nhật bộ đề thành công", "quiz": {
         "id": quiz.id, "title": quiz.title, "description": quiz.description,
         "is_public": quiz.is_public, "is_open": quiz.is_open,
         "question_time": quiz.question_time, "open_at": quiz.open_at.isoformat() if quiz.open_at else None,
@@ -204,7 +204,7 @@ def publish_quiz(quiz_id):
     if 'is_open' in data:
         quiz.is_open = data.get('is_open')
     db.session.commit()
-    return jsonify({"message": "Da cap nhat trang thai bo de", "is_public": quiz.is_public, "is_open": quiz.is_open}), 200
+    return jsonify({"message": "Đã cập nhật trạng thái bộ đề", "is_public": quiz.is_public, "is_open": quiz.is_open}), 200
 
 @teacher_bp.route('/quizzes/<int:quiz_id>/questions/order', methods=['PUT'])
 def reorder_questions(quiz_id):
@@ -219,7 +219,7 @@ def reorder_questions(quiz_id):
         if q and q.quiz_id == quiz.id:
             q.order_num = i
     db.session.commit()
-    return jsonify({"message": "Thay doi thu tu cau hoi thanh cong"}), 200
+    return jsonify({"message": "Thay đổi thứ tự câu hỏi thành công"}), 200
 
 @teacher_bp.route('/quizzes/<int:quiz_id>/questions', methods=['POST'])
 def add_question(quiz_id):
@@ -468,7 +468,7 @@ def clone_quiz(quiz_id):
     db.session.commit()
 
     return jsonify({
-        "message": "Da clone bo de thanh cong",
+        "message": "Đã sao chép bộ đề thành công",
         "quiz": {
             "id": new_quiz.id,
             "title": new_quiz.title,
@@ -606,7 +606,7 @@ def duplicate_quiz(quiz_id):
     db.session.commit()
 
     return jsonify({
-        "message": "Duplicate thanh cong",
+        "message": "Sao chép thành công",
         "quiz": {
             "id": new_quiz.id,
             "title": new_quiz.title,

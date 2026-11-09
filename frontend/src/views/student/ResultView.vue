@@ -42,7 +42,7 @@ async function loadResult() {
       router.replace({ name: 'play', params: { token: route.params.token } })
       return
     }
-    err.value = e.response && e.response.data && e.response.data.error ? e.response.data.error : 'Khong lay duoc ket qua.'
+    err.value = e.response && e.response.data && e.response.data.error ? e.response.data.error : 'Không lấy được kết quả.'
   } finally {
     loading.value = false
   }

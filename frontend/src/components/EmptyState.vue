@@ -1,6 +1,6 @@
 <script setup>
 const props = defineProps({
-  message: { type: String, default: 'Khong co du lieu.' },
+  message: { type: String, default: 'Không có dữ liệu.' },
   hint: { type: String, default: '' },
 })
 </script>

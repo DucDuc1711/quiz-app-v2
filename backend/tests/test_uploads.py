@@ -117,7 +117,7 @@ def test_upload_get_public(client):
     url = resp.get_json()["url"]
     filename = url.rsplit("/", 1)[-1]
 
-    # GET cong khai: khong con token van tai duoc file vua upload
+    # GET công khai: không còn token vẫn tải được file vừa upload
     resp = client.get(f"/api/uploads/{filename}")
     assert resp.status_code == 200, resp.get_json()
     assert resp.data == PNG_MIN

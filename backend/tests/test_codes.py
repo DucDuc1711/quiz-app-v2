@@ -15,7 +15,7 @@ def test_generate_unique_code_format(app):
 
 
 def test_generate_unique_code_no_duplicates(app):
-    """Khong sinh ma trung lap."""
+    """Không sinh mã trùng lặp."""
     with app.app_context():
         codes = set()
         for _ in range(100):

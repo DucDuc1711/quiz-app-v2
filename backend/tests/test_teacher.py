@@ -162,7 +162,7 @@ def test_teacher_update_quiz(client):
         "title": "Cu de moi", "description": "Mo ta moi", "is_public": False
     }, headers=_auth_headers(token))
     assert resp.status_code == 200
-    assert resp.get_json()["message"] == "Cap nhat bo de thanh cong"
+    assert resp.get_json()["message"] == "Cập nhật bộ đề thành công"
     get_resp = client.get(f"/api/teacher/quizzes/{quiz_id}", headers=_auth_headers(token))
     gdata = get_resp.get_json()
     assert gdata["title"] == "Cu de moi"
@@ -291,7 +291,7 @@ def test_teacher_question_crud_409_when_attempts(client, app):
     resp = client.delete(f"/api/teacher/questions/{q_id}", headers=headers)
     assert resp.status_code == 409, resp.get_json()
 
-    # POST import -> 409 (kiem tra attempts xac trinh truoc khi doc file, khong can gui file)
+    # POST import -> 409 (kiểm tra attempts xác thực trước khi đọc file, không cần gửi file)
     resp = client.post(f"/api/teacher/quizzes/{quiz_id}/import", headers=headers)
     assert resp.status_code == 409, resp.get_json()
 

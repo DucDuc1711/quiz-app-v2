@@ -36,7 +36,7 @@ export const teacherApi = {
     return api.put(`/teacher/quizzes/${encodeURIComponent(quizId)}`, payload)
   },
 
-  // Cong tac cong khong / mo dong nhan bai
+  // Công tác công khóa / mở đồng nhận bài
   publishQuiz(quizId, payload) {
     return api.patch(`/teacher/quizzes/${encodeURIComponent(quizId)}/publish`, payload)
   },

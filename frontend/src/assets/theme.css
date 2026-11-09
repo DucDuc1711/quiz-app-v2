@@ -123,7 +123,7 @@ a:hover { text-decoration: underline; }
 .q-form-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 6px; }
 .q-form-group { margin-bottom: 14px; }
 .q-form-label { display: block; font-size: 0.93rem; font-weight: 600; color: var(--q-text); margin-bottom: 6px; }
-.q-form-control { width: 100%; min-height: var(--q-touch-min); padding: 10px 14px; border-radius: var(--q-radius-md); border: 1px solid var(--q-border); background: var(--q-card); font-size: 1rem; transition: border-color var(--q-transition), box-shadow var(--q-transition); text-transform: uppercase; }
+.q-form-control { width: 100%; min-height: var(--q-touch-min); padding: 10px 14px; border-radius: var(--q-radius-md); border: 1px solid var(--q-border); background: var(--q-card); font-size: 1rem; transition: border-color var(--q-transition), box-shadow var(--q-transition); }
 .q-form-control:focus { outline: none; border-color: var(--q-border-focus); box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.12); }
 .q-error { margin-top: 10px; padding: 10px 14px; background: var(--q-danger-bg); color: var(--q-danger-text); border: 1px solid #FECACA; border-radius: var(--q-radius-md); font-size: 0.93rem; }
 .q-quiz-info { margin-top: 18px; padding: 14px 16px; background: var(--q-muted); border-radius: var(--q-radius-md); }

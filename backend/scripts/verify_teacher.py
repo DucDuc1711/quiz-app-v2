@@ -76,6 +76,38 @@ def run_verification():
     check(resp.status_code == 200, "Dang nhap thanh cong, co access_token")
     token = resp.get_json()["access_token"]
 
+    # Kiểm tra không phân biệt hoa thường (tên đăng nhập và email)
+    resp = client.post("/api/auth/register", json={
+        "username": "GiaoVien1", "email": "GiaoVien1@Gmail.com", "password": "GiaoVien1",
+    })
+    check(resp.status_code == 201, "Dang ky GiaoVien1 / GiaoVien1@Gmail.com")
+    if resp.status_code == 201:
+        u = resp.get_json()["user"]
+        check(u["username"] == u["username"].lower(), "Username luu thanh chu thuong")
+        check(u["email"] == u["email"].lower(), "Email luu thanh chu thuong")
+        check(u["username"] == "giaovien1", "Username gia tri khong dau")
+        check(u["email"] == "giaovien1@gmail.com", "Email gia tri khong dau")
+
+    for login in ["giaovien1", "GIAOVIEN1", "GiaoVien1", "giaovien1@gmail.com", "GIAOVIEN1@GMAIL.COM"]:
+        r = client.post("/api/auth/login", json={
+            "username_or_email": login, "password": "GiaoVien1",
+        })
+        check(r.status_code == 200, f"Đăng nhập không phân biệt hoa thường: {login}")
+
+    r = client.post("/api/auth/login", json={
+        "username_or_email": "giaovien1", "password": "giavien1",
+    })
+    check(r.status_code == 401, "Mật khẩu sai hoa thường tra 401")
+    check(r.get_json().get("error") == "Tài khoản hoặc mật khẩu không chính xác.",
+          "Thông báo sai tài khoản có dấu")
+
+    r = client.post("/api/auth/register", json={
+        "username": "GIAOVIEN1", "email": "other@example.com", "password": "Password123",
+    })
+    check(r.status_code == 409, "Dang ky trung khac hoa thuong tra 409")
+    check(r.get_json().get("error") == "Tên đăng nhập đã tồn tại.", "Thông báo trùng tên có dấu")
+
+
     resp = client.get("/api/auth/me", headers=auth_headers(token))
     check(resp.status_code == 200 and resp.get_json()["user"]["role"] == "teacher",
           "GET /api/auth/me tra vai tro teacher")
@@ -139,7 +171,7 @@ def run_verification():
 
     csv_content = "Cau hoi,Loai (1 dap an / nhieu dap an / dung-sai),Dap an A,Dap an B,Dap an C,Dap an D,Dap an E,Dap an F,Dap an dung,Thoi gian (giay)\n"
     csv_content += "Cau hop le,1 dap an,A,B,,,,,A,30\n"
-    csv_content += "Cau loi,loai khong hop le,A,B,,,,,X,30\n"
+    csv_content += "Câu lỗi,loại không hợp lệ,A,B,,,,,X,30\n"
     resp = client.post(f"/api/teacher/quizzes/{quiz_id}/import",
                        content_type="multipart/form-data",
                        data={"file": (io.BytesIO(csv_content.encode("utf-8-sig")), "import.csv")},

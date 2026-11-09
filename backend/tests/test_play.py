@@ -508,7 +508,7 @@ def test_state_after_limit_no_answer(client, app):
     assert data["feedback"]["selected_choice_ids"] == []
     assert data["feedback"]["is_correct"] is False
 
-    # Sau khi da tu ghi khong tra loi, khong the tra loi lai duoc (409)
+    # Sau khi đã tự ghi không trả lời, không thể trả lời lại được (409)
     with app.app_context():
         attempt = Attempt.query.filter_by(token=token).first()
         q1 = attempt.question_order[0]

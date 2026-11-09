@@ -1,7 +1,23 @@
 from functools import wraps
 from flask import jsonify
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+from sqlalchemy import func
 from models import db, User
+
+
+def normalize_username(value):
+    """Chuan hoa ten dang nhap: cat khoang trang dau/cuoi va viet thuong. Khong chuan hoa mat khau."""
+    return (value or "").strip().lower()
+
+
+def normalize_email(value):
+    """Chuan hoa email: cat khoang trang dau/cuoi va viet thuong."""
+    return (value or "").strip().lower()
+
+
+def normalize_login_value(value):
+    """Chuan hoa gia tri tim kiem dang nhap (ten dang nhap hoac email): cat khoang trang dau/cuoi, viet thuong."""
+    return (value or "").strip().lower()
 
 
 def error_response(message, status_code):
@@ -49,7 +65,7 @@ def teacher_required(fn):
         user_id = get_jwt_identity()
         user = db.session.get(User, int(user_id))
         if user is None or not user.is_active:
-            return jsonify({"error": "Tài khoản không hợp lệ đã bị khóa hoặc xóa."}), 401
+            return jsonify({"error": "Tài khoản không hợp lệ hoặc đã bị khóa."}), 401
         if user.role != "teacher":
             return jsonify({"error": "Chỉ giáo viên mới được phép."}), 403
         return fn(*args, **kwargs)
@@ -63,7 +79,7 @@ def admin_required(fn):
         user_id = get_jwt_identity()
         user = db.session.get(User, int(user_id))
         if user is None or not user.is_active:
-            return jsonify({"error": "Tài khoản không hợp lệ đã bị khóa hoặc xóa."}), 401
+            return jsonify({"error": "Tài khoản không hợp lệ hoặc đã bị khóa."}), 401
         if user.role != "admin":
             return jsonify({"error": "Chỉ admin mới được phép."}), 403
         return fn(*args, **kwargs)

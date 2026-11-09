@@ -11,4 +11,4 @@ def generate_unique_code(length=6, max_attempts=1000):
         code = "".join(secrets.choice(_ALPHABET) for _ in range(length))
         if not Quiz.query.filter_by(access_code=code).first():
             return code
-    raise RuntimeError("Khong sinh duoc ma tham gia duy nhat sau nhieu lan thu.")
+    raise RuntimeError("Không sinh được mã tham gia duy nhất sau nhiều lần thử.")

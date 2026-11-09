@@ -32,21 +32,21 @@ def _detect_ext(data):
 @teacher_required
 def upload_file():
     if "file" not in request.files:
-        return error_response("Khong co file duoc tai len.", 400)
+        return error_response("Không có file được tải lên.", 400)
 
     file = request.files["file"]
     if file.filename == "":
-        return error_response("Khong chon file.", 400)
+        return error_response("Không chọn file.", 400)
 
     data = file.read()
     if len(data) > MAX_FILE_SIZE:
-        return error_response("File qua lon. Gioi han la 2 MB.", 413)
+        return error_response("File quá lớn. Giới hạn là 2 MB.", 413)
 
     ext = _detect_ext(data)
     if ext is None:
-        return error_response("Chi nhan anh png, jpg, webp, gif (kiem tra dang file).", 400)
+        return error_response("Chỉ nhận ảnh png, jpg, webp, gif (kiểm tra định dạng file).", 400)
     if ext == ".svg" or file.filename.lower().endswith(".svg"):
-        return error_response("Khong chap nhan file svg.", 400)
+        return error_response("Không chấp nhận file svg.", 400)
 
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     filename = secrets.token_hex(16) + ext
@@ -55,7 +55,7 @@ def upload_file():
         f.write(data)
 
     url = f"/api/uploads/{filename}"
-    return jsonify({"message": "Tai len thanh cong.", "url": url}), 201
+    return jsonify({"message": "Tải lên thành công.", "url": url}), 201
 
 
 @uploads_bp.route("/uploads/<filename>", methods=["GET"])

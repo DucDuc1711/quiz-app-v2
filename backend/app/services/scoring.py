@@ -2,11 +2,11 @@ from datetime import datetime, timezone
 
 
 def check_answer(selected_ids, correct_ids):
-    """Kiem tra dap an chinh xac: tap chon khop hoan toan tap dung (khong chot diem mot phan).
+    """Kiểm tra đáp án chính xác: tập chọn khớp hoàn toàn tập đúng (không chốt điểm một phần).
 
-    selected_ids: danh sach id da chon (co the rong neu bo qua).
-    correct_ids: danh sach id dap an dung cua cau hoi.
-    Tra ve True neu hai tap giong nhau, neu ca hai deu rong thi coi nhu bo qua (khong dung).
+    selected_ids: danh sách id đã chọn (có thể rỗng nếu bỏ qua).
+    correct_ids: danh sách id đáp án đúng của câu hỏi.
+    Trả về True nếu hai tập giống nhau, nếu cả hai đều rỗng thì coi như bỏ qua (không dung).
     """
     if selected_ids is None:
         selected_ids = []

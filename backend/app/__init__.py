@@ -57,15 +57,15 @@ def create_app(config_object=None):
 
     @jwt.invalid_token_loader
     def invalid_token_callback(reason):
-        return jsonify({"error": "Token khong hop le: " + reason}), 401
+        return jsonify({"error": "Token không hợp lệ: " + reason}), 401
 
     @jwt.unauthorized_loader
     def missing_token_callback(reason):
-        return jsonify({"error": "Can xac thuc: " + reason}), 401
+        return jsonify({"error": "Cần xác thực: " + reason}), 401
 
     @jwt.revoked_token_loader
     def revoked_token_callback(_jwt_header, _jwt_data):
-        return jsonify({"error": "Token da bi thu hoi. Vui long dang nhap lai."}), 401
+        return jsonify({"error": "Token đã bị thu hồi. Vui lòng đăng nhập lại."}), 401
 
     from cli import register_cli
     register_cli(app)

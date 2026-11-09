@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Script kiem tra tu dong toan bo luong lam bai (verify_flow.py).
-Chay tu thu muc backend bang: python scripts/verify_flow.py
+"""Script kiểm tra tự động toàn bộ luồng làm bài (verify_flow.py).
+Chạy từ thư mục backend bằng: python scripts/verify_flow.py
 """
 import sys
 import os

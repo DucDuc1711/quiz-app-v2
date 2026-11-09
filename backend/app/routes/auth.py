@@ -1,10 +1,12 @@
 import re
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
+from sqlalchemy import or_, func
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from extensions import db, limiter
 from models import User
+from utils import normalize_username, normalize_email, normalize_login_value
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -14,24 +16,24 @@ EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 def _validate_register(data):
     errors = []
-    username = (data.get("username") or "").strip()
-    email = (data.get("email") or "").strip().lower()
+    username = normalize_username(data.get("username"))
+    email = normalize_email(data.get("email"))
     password = data.get("password") or ""
 
     if not username:
-        errors.append("Username bat buoc.")
+        errors.append("Tên đăng nhập bắt buộc.")
     elif not USERNAME_RE.match(username):
-        errors.append("Username 4-30 ky tu, chi chua chu, so, dau _ va dau cham.")
+        errors.append("Tên đăng nhập chỉ gồm chữ, số, dấu gạch dưới và dấu chấm (4–30 ký tự).")
 
     if not email:
-        errors.append("Email bat buoc.")
+        errors.append("Email bắt buộc.")
     elif not EMAIL_RE.match(email):
-        errors.append("Email khong hop le.")
+        errors.append("Email không hợp lệ.")
 
     if not password:
-        errors.append("Mat khau bat buoc.")
+        errors.append("Mật khẩu bắt buộc.")
     elif len(password) < 8:
-        errors.append("Mat khau toi thieu 8 ky tu.")
+        errors.append("Mật khẩu tối thiểu 8 ký tự.")
 
     return errors, username, email, password
 
@@ -44,10 +46,10 @@ def register():
     if errors:
         return jsonify({"error": "; ".join(errors)}), 400
 
-    if User.query.filter_by(username=username).first():
-        return jsonify({"error": "Username da ton tai."}), 409
-    if User.query.filter_by(email=email).first():
-        return jsonify({"error": "Email da ton tai."}), 409
+    if User.query.filter(func.lower(User.username) == username).first():
+        return jsonify({"error": "Tên đăng nhập đã tồn tại."}), 409
+    if User.query.filter(func.lower(User.email) == email).first():
+        return jsonify({"error": "Email đã được sử dụng."}), 409
 
     # Luon role teacher, bo qua truong role gui len
     user = User(
@@ -62,7 +64,7 @@ def register():
 
     access_token = create_access_token(identity=str(user.id))
     return jsonify({
-        "message": "Dang ky thanh cong.",
+        "message": "Đăng ký thành công.",
         "access_token": access_token,
         "user": {
             "id": user.id,
@@ -77,28 +79,31 @@ def register():
 @limiter.limit("10/minute")
 def login():
     data = request.get_json(silent=True) or {}
-    username_or_email = (data.get("username_or_email") or "").strip()
+    username_or_email = normalize_login_value(data.get("username_or_email"))
     password = data.get("password") or ""
 
     if not username_or_email or not password:
-        return jsonify({"error": "Vui long nhap day du thong tin."}), 400
+        return jsonify({"error": "Vui lòng nhập đầy đủ thông tin."}), 400
 
     user = User.query.filter(
-        (User.username == username_or_email) | (User.email == username_or_email.lower())
+        or_(
+            func.lower(User.username) == username_or_email,
+            func.lower(User.email) == username_or_email,
+        )
     ).first()
 
     if user is None or not check_password_hash(user.password_hash, password):
-        return jsonify({"error": "Tai khoan hoac mat khau khong chinh xac."}), 401
+        return jsonify({"error": "Tài khoản hoặc mật khẩu không chính xác."}), 401
 
     if user.role == "admin":
-        return jsonify({"error": "Dang nhap qua /api/auth/admin/login cho tai khoan admin."}), 403
+        return jsonify({"error": "Đăng nhập qua /api/auth/admin/login cho tài khoản admin."}), 403
 
     if not user.is_active:
-        return jsonify({"error": "Tai khoan da bi khoa. Vui long lien he admin."}), 403
+        return jsonify({"error": "Tài khoản đã bị khóa. Vui lòng liên hệ admin."}), 403
 
     access_token = create_access_token(identity=str(user.id))
     return jsonify({
-        "message": "Dang nhap thanh cong.",
+        "message": "Đăng nhập thành công.",
         "access_token": access_token,
         "user": {
             "id": user.id,
@@ -113,28 +118,31 @@ def login():
 @limiter.limit("10/minute")
 def admin_login():
     data = request.get_json(silent=True) or {}
-    username_or_email = (data.get("username_or_email") or "").strip()
+    username_or_email = normalize_login_value(data.get("username_or_email"))
     password = data.get("password") or ""
 
     if not username_or_email or not password:
-        return jsonify({"error": "Vui long nhap day du thong tin."}), 400
+        return jsonify({"error": "Vui lòng nhập đầy đủ thông tin."}), 400
 
     user = User.query.filter(
-        (User.username == username_or_email) | (User.email == username_or_email.lower())
+        or_(
+            func.lower(User.username) == username_or_email,
+            func.lower(User.email) == username_or_email,
+        )
     ).first()
 
     if user is None or not check_password_hash(user.password_hash, password):
-        return jsonify({"error": "Tai khoan hoac mat khau khong chinh xac."}), 401
+        return jsonify({"error": "Tài khoản hoặc mật khẩu không chính xác."}), 401
 
     if user.role != "admin":
-        return jsonify({"error": "Chi tai khoan admin moi duoc dang nhap tai day."}), 403
+        return jsonify({"error": "Chỉ tài khoản admin mới được đăng nhập tại đây."}), 403
 
     if not user.is_active:
-        return jsonify({"error": "Tai khoan admin da bi khoa."}), 403
+        return jsonify({"error": "Tài khoản admin đã bị khóa."}), 403
 
     access_token = create_access_token(identity=str(user.id))
     return jsonify({
-        "message": "Dang nhap admin thanh cong.",
+        "message": "Đăng nhập admin thành công.",
         "access_token": access_token,
         "user": {
             "id": user.id,
@@ -151,9 +159,9 @@ def me():
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
     if user is None or not user.is_active:
-        return jsonify({"error": "Tai khoan khong ton tai da bi khoa."}), 401
+        return jsonify({"error": "Tài khoản không tồn tại hoặc đã bị khóa."}), 401
     return jsonify({
-        "message": "Lay thong tin nguoi dung thanh cong.",
+        "message": "Lấy thông tin người dùng thành công.",
         "user": {
             "id": user.id,
             "username": user.username,

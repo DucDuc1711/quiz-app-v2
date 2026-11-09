@@ -12,7 +12,14 @@
 - Đã sửa POST /api/play/<token>/answer trả 400 kèm thông báo "Thiếu question_id hoặc choice_ids." nếu thiếu trường.
 - Đã viết test và chạy pytest toàn bộ xanh (dùng DB :memory:).
 
-## Đang làm dở (đợt sửa P4)
+## Đang làm dở (đợt sửa P5)
+- [ ] Bước 1: Xác nhận nguyên nhân thật (console.log tạm đã thêm vào RegisterView/LoginView, sẽ xóa sau khi xác nhận)
+- [ ] Bước 2: Backend — username/email không phân biệt hoa thường, mật khẩu giữ nguyên văn, thông báo có dấu
+- [ ] Bước 3: Frontend — bỏ ép chữ hoa, chuẩn hóa ô nhập, tách try/catch, thông báo có dấu
+- [ ] Bước 4: Frontend — trang đăng ký cùng style đăng nhập (AuthCard dùng chung)
+- [ ] Bước 5: Test — pytest + verify_teacher.py + verify_flow.py
+- [ ] Bước 6: Kiểm tra — npm run build, pytest xanh, hai script PASS
+- [ ] Bước 7: PROGRESS.md và git commit
 - [x] Bước 1: Sửa lỗi gốc backend (play.py): state() đọc attempt.phase, trả feedback khi phase == "feedback"; tự ghi "không trả lời" nếu quá hạn chưa answer; answer() nhận khi phase còn "question", quá hạn vẫn chấm, mảng rỗng hợp lệ, validate choice_ids là list và thuộc câu hỏi, 409 khi trả lời lại; lỗi cú pháp error_response chuẩn 2 tham số; _get_attempt_or_404 trả 2 phần tử; db.session.get thay Question.query.get; chuỗi tiếng Việt có dấu đầy đủ.
 - [x] Bước 2: Test backend (pytest, DB :memory:) — thêm/sửa test: mảng rỗng 200 is_correct false; thiếu trường 400; choice_ids không phải list 400; chọn id không thuộc câu hỏi 400; gửi đúng hạn; gửi quá hạn chọn đúng (timed_out true và is_correct true) và chọn sai; state sau answer trả phase feedback (câu giữa, câu cuối, answer rỗng); gọi state nhiều lần ở feedback kết quả giống nhau không tạo thêm bản ghi; trả lời lại 409; token sai 404; question_id sai 409; next khi chưa answer 409. pytest xanh toàn bộ (93 test).
 - [x] Bước 3: Kiểm tra PlayView với JSON thật — sửa loadState() không gán question.value = undefined ở phase feedback (khắc phục lỗi phản hồi không hiện); giữ selected_value = đáp án đã chọn ở feedback; backend _build_feedback_payload trả thêm object question để F5 ở phase feedback vẫn render; chuỗi thông báo FE có dấu ("Không lấy được trạng thái câu hỏi.", "Không nộp được đáp án.", "Không lấy câu tiếp theo.", "Câu {i} / {total}"). Xác minh: mount luôn GET state, không lưu sessionStorage, lỗi API hiện thông báo tiếng Việt + nút "Thử lại", nút "Chốt!" cố định, Enter chốt, chống bấm đúp, nhấp nháy ≤5 giây, hết giờ tự gửi đáp án đang chọn, mốc thời gian không đếm tick, giữ tab_hidden, cảnh báo rời trang, không nút quay lại, không nút "Câu tiếp".
@@ -50,6 +57,11 @@
 - P5: trường backend đã thêm: question_count, attempt_count, is_open, is_public, updated_at (GET danh sách quizzes); correct_answers, time_spent, tab_switch_count (attempts); max_score, min_score (stats); is_correct (chi tiết library); PUT quizzes nhận thêm question_time, shuffle flags, is_open, open_at, close_at, tags.
 
 
+## Quyết định P5 (fix đăng ký/đăng nhập)
+- Username và email không phân biệt hoa thường: lưu chữ thường, tìm bằng func.lower(User.username/email) trong auth.py; dùng normalize_username/normalize_email/normalize_login_value trong utils.py cho mọi nơi (register, login, admin_login, cli create-admin/seed).
+- Mật khẩu phân biệt hoa thường và giữ nguyên văn: không strip, không lower, so sánh bằng check_password_hash nguyên văn.
+- Ô mã bộ đề học sinh là ô duy nhất được ép chữ hoa (HomeView.vue JS toUpperCase); mọi ô username/email/mật khẩu bỏ ép chữ hoa, dùng autocapitalize/autocorrect/spellcheck/autocomplete phù hợp.
+
 ## Thiết kế giao diện (P4)
 - Đồng hồ báo thức: SVG đồng hồ, số giây làm tròn lên ở giữa, thanh chạy tuyến tính bằng requestAnimationFrame/CSS animation, deadline tính từ lúc nhận seconds_left (không cộng dồn tick).
 - Nút "Chốt!" cố định cho mọi câu; chạm thẻ không gửi; Enter chốt; chống bấm đúp; nhấp nháy ≤5 giây; không nút "Câu tiếp"; đồng hồ về 0 tự gửi đáp án đang chọn; dùng mốc thời gian không đếm tick; giữ tab_hidden; cảnh báo rời trang; không nút quay lại.
@@ -58,6 +70,10 @@
 
 ## Lỗi đã biết
 - Không có lỗi nghiêm trọng còn tồn tại sau khi sửa build (template Invalid end tag, chuỗi message thoát dấu nháy, debounce không export từ Vue đã khôi phục).
+- P5 (đã sửa):
+  * Ép chữ hoa toàn bộ ô nhập do CSS text-transform: uppercase trên .q-form-control trong theme.css (chỉ đổi hiển thị, không đổi giá trị gửi đi). Ô mã bộ đề học sinh giữ viết hoa bằng JS ở HomeView.vue (ô duy nhất được phép ép).
+  * Báo "Đăng ký thất bại" giả dù backend đã tạo thành công: try/catch trong RegisterView/LoginView bao trộn lệnh gọi API lẫn bước sau (setAuth, toast, router.push), lỗi phía sau bị nuốt và hiện câu dự phòng. Sửa bằng tách try/catch.
+  * Đăng nhập không phân biệt hoa thường: auth.py trước đây so sánh User.username == username_or_email (phân biệt). Sửa bằng func.lower(User.username) == giá trị đã lower OR func.lower(User.email) == giá trị đã lower, cùng normalize_login_value (strip + lower). Chuỗi thông báo backend không dấu → đã sửa thành có dấu.
 
 ## Đề xuất sửa spec
 - GET /api/teacher/library/:id cần trả choices kèm is_correct để giao diện thư viện chi tiết đánh dấu đáp án đúng (đã bổ sung vào backend và cập nhật test, pytest vẫn xanh, không đổi tên trường cũ).

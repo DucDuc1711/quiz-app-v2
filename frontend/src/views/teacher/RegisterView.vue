@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
+import AuthCard from '@/components/AuthCard.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -71,23 +72,33 @@ async function onRegister() {
     if (!validate()) return
 
     loading.value = true
+    let token = null
+    let user = null
     try {
       const api = (await import('@/api/axios')).default
       const res = await api.post('/auth/register', {
-        username: username.value.trim(),
+        username: username.value.trim().toLowerCase(),
         email: email.value.trim().toLowerCase(),
         password: password.value,
       })
-      const data = res.data
-      auth.setAuth(data.access_token, data.user)
-      toast.success('Đăng ký thành công.', 'Chào mừng')
-      router.push('/teacher')
+      token = res.data.access_token
+      user = res.data.user
     } catch (e) {
       const msg = e.response && e.response.data && e.response.data.error
         ? e.response.data.error
-        : 'Đăng ký thất bại. Vui lòng thử lại.'
+        : 'Đăng ký không thành công. Vui lòng thử lại.'
       fieldErrors.value = { _form: msg }
-      toast.error(msg, 'Đăng ký thất bại')
+      toast.error(msg, 'Đăng ký không thành công')
+      loading.value = false
+      return
+    }
+
+    // Bước sau (setAuth, toast, chuyển trang) nằm ngoài try gọi API,
+    // nên lỗi ở đây không bị báo là "đăng ký thất bại".
+    try {
+      auth.setAuth(token, user)
+      toast.success('Đăng ký thành công.', 'Chào mừng')
+      router.push('/teacher')
     } finally {
       loading.value = false
     }
@@ -95,87 +106,92 @@ async function onRegister() {
 </script>
 
 <template>
-  <div class="q-page-wrap q-teacher-page">
-    <div class="q-page-card q-panel q-pad">
-      <div class="q-page-header">
-        <span class="q-mark">Q</span>uiz App
+  <AuthCard
+    title="Đăng ký giáo viên"
+    subtitle="Tạo tài khoản giáo viên để quản lý bộ đề thi."
+    :error="fieldErrors._form || null"
+    submitLabel="Đăng ký"
+    :loading="loading"
+    toggleBefore="Đã có tài khoản?"
+    toggleText="Đăng nhập tại đây"
+    @toggle="router.push({ name: 'teacher-login' })"
+    @submit="onRegister"
+  >
+    <template #form>
+      <div class="q-form-group">
+        <label class="q-form-label">Tên đăng nhập</label>
+        <input
+          class="q-form-control"
+          v-model="username"
+          placeholder="tên_đăng_nhập (4–30 ký tự)"
+          autocomplete="username"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          :class="{ 'q-form-error': fieldErrors.username }"
+        />
+        <div v-if="fieldErrors.username" class="q-form-error">{{ fieldErrors.username }}</div>
       </div>
-      <h2 class="q-page-title">Đăng ký giáo viên</h2>
-      <p class="q-page-sub">Tạo tài khoản giáo viên để quản lý bộ đề thi.</p>
 
-      <form @submit.prevent="onRegister" class="q-form">
-        <div class="q-form-group">
-          <label class="q-form-label">Tên đăng nhập</label>
+      <div class="q-form-group">
+        <label class="q-form-label">Email</label>
+        <input
+          class="q-form-control"
+          v-model="email"
+          type="email"
+          placeholder="ten@example.com"
+          autocomplete="email"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          :class="{ 'q-form-error': fieldErrors.email }"
+        />
+        <div v-if="fieldErrors.email" class="q-form-error">{{ fieldErrors.email }}</div>
+      </div>
+
+      <div class="q-form-group">
+        <label class="q-form-label">Mật khẩu</label>
+        <div class="q-password-wrap">
           <input
             class="q-form-control"
-            v-model="username"
-            placeholder="tên_đăng_nhập (4–30 ký tự)"
-            :class="{ 'q-form-error': fieldErrors.username }"
+            :type="showPassword ? 'text' : 'password'"
+            v-model="password"
+            placeholder="•••••••• (tối thiểu 8 ký tự)"
+            autocomplete="new-password"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+            :class="{ 'q-form-error': fieldErrors.password }"
           />
-          <div v-if="fieldErrors.username" class="q-form-error">{{ fieldErrors.username }}</div>
+          <button type="button" class="q-password-toggle" @click="showPassword = !showPassword">
+            {{ showPassword ? 'Ẩn' : 'Hiện' }}
+          </button>
         </div>
+        <div v-if="fieldErrors.password" class="q-form-error">{{ fieldErrors.password }}</div>
+      </div>
 
-        <div class="q-form-group">
-          <label class="q-form-label">Email</label>
+      <div class="q-form-group">
+        <label class="q-form-label">Nhập lại mật khẩu</label>
+        <div class="q-password-wrap">
           <input
             class="q-form-control"
-            v-model="email"
-            type="email"
-            placeholder="ten@example.com"
-            :class="{ 'q-form-error': fieldErrors.email }"
+            :type="showConfirm ? 'text' : 'password'"
+            v-model="confirmPassword"
+            placeholder="••••••••"
+            autocomplete="new-password"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+            :class="{ 'q-form-error': fieldErrors.confirmPassword }"
           />
-          <div v-if="fieldErrors.email" class="q-form-error">{{ fieldErrors.email }}</div>
+          <button type="button" class="q-password-toggle" @click="showConfirm = !showConfirm">
+            {{ showConfirm ? 'Ẩn' : 'Hiện' }}
+          </button>
         </div>
+        <div v-if="fieldErrors.confirmPassword" class="q-form-error">{{ fieldErrors.confirmPassword }}</div>
+      </div>
 
-        <div class="q-form-group">
-          <label class="q-form-label">Mật khẩu</label>
-          <div class="q-password-wrap">
-            <input
-              class="q-form-control"
-              :type="showPassword ? 'text' : 'password'"
-              v-model="password"
-              placeholder="•••••••• (tối thiểu 8 ký tự)"
-              :class="{ 'q-form-error': fieldErrors.password }"
-            />
-            <button type="button" class="q-password-toggle" @click="showPassword = !showPassword">
-              {{ showPassword ? 'Ẩn' : 'Hiện' }}
-            </button>
-          </div>
-          <div v-if="fieldErrors.password" class="q-form-error">{{ fieldErrors.password }}</div>
-        </div>
-
-        <div class="q-form-group">
-          <label class="q-form-label">Nhập lại mật khẩu</label>
-          <div class="q-password-wrap">
-            <input
-              class="q-form-control"
-              :type="showConfirm ? 'text' : 'password'"
-              v-model="confirmPassword"
-              placeholder="••••••••"
-              :class="{ 'q-form-error': fieldErrors.confirmPassword }"
-            />
-            <button type="button" class="q-password-toggle" @click="showConfirm = !showConfirm">
-              {{ showConfirm ? 'Ẩn' : 'Hiện' }}
-            </button>
-          </div>
-          <div v-if="fieldErrors.confirmPassword" class="q-form-error">{{ fieldErrors.confirmPassword }}</div>
-        </div>
-
-        <div v-if="fieldErrors._form" class="q-form-error q-form-error--block">{{ fieldErrors._form }}</div>
-
-        <button
-          type="submit"
-          class="q-btn q-btn-primary q-btn-full"
-          :disabled="loading"
-        >
-          {{ loading ? 'Đăng ký...' : 'Đăng ký' }}
-        </button>
-      </form>
-
-      <p class="q-page-footer">
-        Đã có tài khoản?
-        <a class="q-link" @click="router.push({ name: 'teacher-login' })">Đăng nhập tại đây</a>
-      </p>
-    </div>
-  </div>
+      <div v-if="fieldErrors._form" class="q-form-error q-form-error--block">{{ fieldErrors._form }}</div>
+    </template>
+  </AuthCard>
 </template>
