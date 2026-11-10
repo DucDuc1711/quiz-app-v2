@@ -6,7 +6,7 @@ import { teacherApi } from '@/api/teacher'
 const props = defineProps(['quizId'])
 const emit = defineEmits(['imported'])
 
-const { toast } = useToast()
+const { success, error } = useToast()
 
 const file = ref(null)
 const loading = ref(false)
@@ -36,7 +36,7 @@ async function onImport() {
   try {
     const res = await teacherApi.importQuestions(props.quizId, file.value)
     result.value = res.data
-    toast.success('Nhập ' + res.data.imported + ' câu hỏi. ' + (res.data.errors && res.data.errors.length ? res.data.errors.length + ' dòng lỗi.' : 'Không có lỗi.'), 'Nhập thành công')
+    success('Nhập ' + res.data.imported + ' câu hỏi. ' + (res.data.errors && res.data.errors.length ? res.data.errors.length + ' dòng lỗi.' : 'Không có lỗi.'), 'Nhập thành công')
     emit('imported')
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error

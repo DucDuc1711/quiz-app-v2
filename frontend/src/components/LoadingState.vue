@@ -1,6 +1,6 @@
 <script setup>
 const props = defineProps({
-  message: { type: String, default: 'Dang tai...' },
+  message: { type: String, default: 'Đang tải...' },
 })
 </script>
 

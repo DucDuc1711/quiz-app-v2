@@ -4,10 +4,11 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import AuthCard from '@/components/AuthCard.vue'
+import PasswordField from '@/components/PasswordField.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
-const { toast } = useToast()
+const { success, error } = useToast()
 
 const USERNAME_RE = /^[a-zA-Z0-9_.]{4,30}$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -16,8 +17,6 @@ const username = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
-const showPassword = ref(false)
-const showConfirm = ref(false)
 const loading = ref(false)
 const fieldErrors = ref({})
 
@@ -88,7 +87,7 @@ async function onRegister() {
         ? e.response.data.error
         : 'Đăng ký không thành công. Vui lòng thử lại.'
       fieldErrors.value = { _form: msg }
-      toast.error(msg, 'Đăng ký không thành công')
+      error(msg, 'Đăng ký không thành công')
       loading.value = false
       return
     }
@@ -97,7 +96,9 @@ async function onRegister() {
     // nên lỗi ở đây không bị báo là "đăng ký thất bại".
     try {
       auth.setAuth(token, user)
-      toast.success('Đăng ký thành công.', 'Chào mừng')
+      try {
+        success('Đăng ký thành công.', 'Chào mừng')
+      } catch (_) {}
       router.push('/teacher')
     } finally {
       loading.value = false
@@ -151,43 +152,25 @@ async function onRegister() {
 
       <div class="q-form-group">
         <label class="q-form-label">Mật khẩu</label>
-        <div class="q-password-wrap">
-          <input
-            class="q-form-control"
-            :type="showPassword ? 'text' : 'password'"
-            v-model="password"
-            placeholder="•••••••• (tối thiểu 8 ký tự)"
-            autocomplete="new-password"
-            autocapitalize="off"
-            autocorrect="off"
-            spellcheck="false"
-            :class="{ 'q-form-error': fieldErrors.password }"
-          />
-          <button type="button" class="q-password-toggle" @click="showPassword = !showPassword">
-            {{ showPassword ? 'Ẩn' : 'Hiện' }}
-          </button>
-        </div>
+        <PasswordField
+          v-model="password"
+          aria-label="Mật khẩu"
+          autocomplete="new-password"
+          placeholder="•••••••• (tối thiểu 8 ký tự)"
+          :error="!!fieldErrors.password"
+        />
         <div v-if="fieldErrors.password" class="q-form-error">{{ fieldErrors.password }}</div>
       </div>
 
       <div class="q-form-group">
         <label class="q-form-label">Nhập lại mật khẩu</label>
-        <div class="q-password-wrap">
-          <input
-            class="q-form-control"
-            :type="showConfirm ? 'text' : 'password'"
-            v-model="confirmPassword"
-            placeholder="••••••••"
-            autocomplete="new-password"
-            autocapitalize="off"
-            autocorrect="off"
-            spellcheck="false"
-            :class="{ 'q-form-error': fieldErrors.confirmPassword }"
-          />
-          <button type="button" class="q-password-toggle" @click="showConfirm = !showConfirm">
-            {{ showConfirm ? 'Ẩn' : 'Hiện' }}
-          </button>
-        </div>
+        <PasswordField
+          v-model="confirmPassword"
+          aria-label="Nhập lại mật khẩu"
+          autocomplete="new-password"
+          placeholder="••••••••"
+          :error="!!fieldErrors.confirmPassword"
+        />
         <div v-if="fieldErrors.confirmPassword" class="q-form-error">{{ fieldErrors.confirmPassword }}</div>
       </div>
 

@@ -137,7 +137,6 @@ def get_quiz(quiz_id):
         "shuffle_questions": quiz.shuffle_questions,
         "shuffle_choices": quiz.shuffle_choices,
         "show_ranking": quiz.show_ranking,
-        "allow_retake": quiz.allow_retake,
         "is_public": quiz.is_public,
         "source_quiz_id": quiz.source_quiz_id,
         "created_at": quiz.created_at.isoformat() if quiz.created_at else None,
@@ -165,7 +164,6 @@ def update_quiz(quiz_id):
     quiz.shuffle_questions = data.get('shuffle_questions', quiz.shuffle_questions)
     quiz.shuffle_choices = data.get('shuffle_choices', quiz.shuffle_choices)
     quiz.show_ranking = data.get('show_ranking', quiz.show_ranking)
-    quiz.allow_retake = data.get('allow_retake', quiz.allow_retake)
     quiz.is_public = data.get('is_public', quiz.is_public)
     quiz.is_open = data.get('is_open', quiz.is_open)
     quiz.tags = data.get('tags', quiz.tags)

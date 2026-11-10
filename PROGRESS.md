@@ -12,14 +12,28 @@
 - Đã sửa POST /api/play/<token>/answer trả 400 kèm thông báo "Thiếu question_id hoặc choice_ids." nếu thiếu trường.
 - Đã viết test và chạy pytest toàn bộ xanh (dùng DB :memory:).
 
-## Đang làm dở (đợt sửa P5)
-- [ ] Bước 1: Xác nhận nguyên nhân thật (console.log tạm đã thêm vào RegisterView/LoginView, sẽ xóa sau khi xác nhận)
-- [ ] Bước 2: Backend — username/email không phân biệt hoa thường, mật khẩu giữ nguyên văn, thông báo có dấu
-- [ ] Bước 3: Frontend — bỏ ép chữ hoa, chuẩn hóa ô nhập, tách try/catch, thông báo có dấu
-- [ ] Bước 4: Frontend — trang đăng ký cùng style đăng nhập (AuthCard dùng chung)
-- [ ] Bước 5: Test — pytest + verify_teacher.py + verify_flow.py
-- [ ] Bước 6: Kiểm tra — npm run build, pytest xanh, hai script PASS
-- [ ] Bước 7: PROGRESS.md và git commit
+## Đang làm dở (đợt sửa P5 — ĐỢT 2)
+- [x] Bước 1: Xác nhận nguyên nhân thật (đã đọc code thực tế: toast undefined do destructure sai { toast } thay vì { success, error }; thiếu Authorization do api/teacher.js tự tạo instance axios riêng không có interceptor; JWT callback còn tiếng Anh; chuỗi không dấu trong ErrorState/LoadingState/ResultView/ToastHost)
+- [x] Chặng A (mục 1-4): sửa lỗi giao diện — toast thống nhất, axios gắn Authorization cho /api/teacher/*, JWT callback tiếng Việt, chuỗi có dấu, PasswordField, script quét không dấu
+  - Đã sửa 10 file view dùng useToast: LoginView, RegisterView, DashboardView, AccessCodeBlock, ImportBlock, LibraryDetailView, QuestionList, QuizEditorView, QuizSettings, ResultsView
+  - Đã đổi api/teacher.js dùng shared axios instance có interceptor
+  - Đã cập nhật JWT callbacks trong backend/app/__init__.py (tất cả tiếng Việt có dấu)
+  - Đã sửa ErrorState, LoadingState, ToastHost, ResultView header bảng
+  - Đã tạo PasswordField.vue dùng chung, áp dụng cho LoginView, RegisterView
+  - Đã chạy node scripts/check_vietnamese.mjs → PASS
+  - npm run build → PASS
+  - pytest test_play.py (30), test_codes.py (2), test_models.py (2), test_flow_p3.py (4), test_p3_fixes.py (2), test_uploads.py (7) → PASS
+  - verify_teacher.py → PASS, verify_flow.py → PASS
+- [x] Chặng B (mục 5-6): bỏ allow_retake, làm lại không giới hạn, xếp hạng lượt tốt nhất mỗi thiết bị
+  - Xóa cột Quiz.allow_retake (model, migration batch_alter_table, áp dụng lên quiz.db)
+  - Xóa mọi tham chiếu allow_retake trong teacher.py (GET, PUT), play.py (join), QuizSettings.vue, test_play.py
+  - play.py join: không còn 409 "đã làm"; in_progress -> resume 200; finished/no attempt -> tạo mới 201
+  - scoring.py compute_ranking: chỉ attempt finished, nhóm theo device_id lấy attempt tốt nhất (score cao -> time thấp -> finished_at sớm); cùng score & time -> cùng hạng; total_participants = số device đã finished; rank/is_me dựa trên device_id
+  - play.py result/ranking: me_token dùng device_id, total_participants đếm distinct device
+  - Frontend: HomeView.vue xóa error 409 "đã làm"; QuizSettings.vue xóa checkbox "Cho làm lại"
+  - Test: test_play.py 30 pass (test_join_device_multiple_retakes mới), test_teacher.py 25 pass, test_auth.py 14 pass, test_admin.py 13 pass, test_codes.py 2, test_models.py 2, test_flow_p3.py 4, test_p3_fixes.py 2, test_uploads.py 7 = 99 test
+  - verify_teacher.py PASS, verify_flow.py PASS
+- [ ] Chặng C (mục 7-9): Vitest, Playwright e2e, báo cáo, commit
 - [x] Bước 1: Sửa lỗi gốc backend (play.py): state() đọc attempt.phase, trả feedback khi phase == "feedback"; tự ghi "không trả lời" nếu quá hạn chưa answer; answer() nhận khi phase còn "question", quá hạn vẫn chấm, mảng rỗng hợp lệ, validate choice_ids là list và thuộc câu hỏi, 409 khi trả lời lại; lỗi cú pháp error_response chuẩn 2 tham số; _get_attempt_or_404 trả 2 phần tử; db.session.get thay Question.query.get; chuỗi tiếng Việt có dấu đầy đủ.
 - [x] Bước 2: Test backend (pytest, DB :memory:) — thêm/sửa test: mảng rỗng 200 is_correct false; thiếu trường 400; choice_ids không phải list 400; chọn id không thuộc câu hỏi 400; gửi đúng hạn; gửi quá hạn chọn đúng (timed_out true và is_correct true) và chọn sai; state sau answer trả phase feedback (câu giữa, câu cuối, answer rỗng); gọi state nhiều lần ở feedback kết quả giống nhau không tạo thêm bản ghi; trả lời lại 409; token sai 404; question_id sai 409; next khi chưa answer 409. pytest xanh toàn bộ (93 test).
 - [x] Bước 3: Kiểm tra PlayView với JSON thật — sửa loadState() không gán question.value = undefined ở phase feedback (khắc phục lỗi phản hồi không hiện); giữ selected_value = đáp án đã chọn ở feedback; backend _build_feedback_payload trả thêm object question để F5 ở phase feedback vẫn render; chuỗi thông báo FE có dấu ("Không lấy được trạng thái câu hỏi.", "Không nộp được đáp án.", "Không lấy câu tiếp theo.", "Câu {i} / {total}"). Xác minh: mount luôn GET state, không lưu sessionStorage, lỗi API hiện thông báo tiếng Việt + nút "Thử lại", nút "Chốt!" cố định, Enter chốt, chống bấm đúp, nhấp nháy ≤5 giây, hết giờ tự gửi đáp án đang chọn, mốc thời gian không đếm tick, giữ tab_hidden, cảnh báo rời trang, không nút quay lại, không nút "Câu tiếp".

@@ -6,7 +6,7 @@ import { teacherApi } from '@/api/teacher'
 const props = defineProps(['quiz'])
 const emit = defineEmits(['saved', 'code-changed'])
 
-const { toast } = useToast()
+const { success, error } = useToast()
 
 const form = ref({
   title: props.quiz.title || '',
@@ -16,7 +16,6 @@ const form = ref({
   shuffle_questions: !!props.quiz.shuffle_questions,
   shuffle_choices: !!props.quiz.shuffle_choices,
   show_ranking: !!props.quiz.show_ranking,
-  allow_retake: !!props.quiz.allow_retake,
   is_public: !!props.quiz.is_public,
   is_open: !!props.quiz.is_open,
   open_at: props.quiz.open_at ? formatDateTimeLocal(props.quiz.open_at) : '',
@@ -48,7 +47,6 @@ async function onSave() {
       shuffle_questions: form.value.shuffle_questions,
       shuffle_choices: form.value.shuffle_choices,
       show_ranking: form.value.show_ranking,
-      allow_retake: form.value.allow_retake,
       is_public: form.value.is_public,
       is_open: form.value.is_open,
       tags: form.value.tags.trim(),
@@ -57,7 +55,7 @@ async function onSave() {
     }
     await teacherApi.updateQuiz(props.quiz.id, payload)
     unsaved.value = false
-    toast.success('Đã lưu cài đặt bộ đề.', 'Lưu thành công')
+    success('Đã lưu cài đặt bộ đề.', 'Lưu thành công')
     emit('saved', payload)
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error
@@ -119,9 +117,6 @@ const originalCode = computed(() => props.quiz.access_code)
         </label>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
           <input type="checkbox" v-model="form.show_ranking" /> Hiện bảng xếp hạng
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-          <input type="checkbox" v-model="form.allow_retake" /> Cho làm lại
         </label>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
           <input type="checkbox" v-model="form.is_public" /> Công khai

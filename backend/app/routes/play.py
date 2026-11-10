@@ -160,17 +160,18 @@ def join():
     if quiz.close_at and now > quiz.close_at:
         return _quiz_closed()
 
-    if not quiz.allow_retake:
-        existing = Attempt.query.filter_by(quiz_id=quiz.id, device_id=device_id).first()
-        if existing is not None:
-            if existing.status == "finished":
-                return error_response("Thiết bị này đã làm bộ đề này.", 409)
-            return jsonify({
-                "attempt_token": existing.token,
-                "quiz": {"title": quiz.title, "total_questions": len(quiz.questions)},
-                "resumed": True,
-            }), 200
+    # Kiểm tra xem thiết bị có đang có attempt in_progress cho bộ đề này không
+    existing_in_progress = Attempt.query.filter_by(
+        quiz_id=quiz.id, device_id=device_id, status="in_progress"
+    ).first()
+    if existing_in_progress is not None:
+        return jsonify({
+            "attempt_token": existing_in_progress.token,
+            "quiz": {"title": quiz.title, "total_questions": len(quiz.questions)},
+            "resumed": True,
+        }), 200
 
+    # Nếu không có in_progress (chưa làm hoặc lượt cũ đã finished) -> tao luot moi
     questions = quiz.questions
     question_ids = [q.id for q in questions]
     choice_orders = {}
@@ -491,9 +492,10 @@ def result(token):
     quiz = attempt.quiz
 
     attempts = Attempt.query.filter_by(quiz_id=quiz.id).all()
-    ranking = compute_ranking(attempts, me_token=attempt.token)
+    ranking = compute_ranking(attempts, me_token=attempt.device_id)
     my_entry = next((r for r in ranking if r["is_me"]), None)
     my_rank = my_entry["rank"] if my_entry else None
+    total_participants = len({a.device_id for a in attempts if a.status == "finished"})
 
     return jsonify({
         "student_name": attempt.student_name,
@@ -503,7 +505,7 @@ def result(token):
         "total_questions": attempt.total_questions,
         "time_spent": attempt.time_spent,
         "rank": my_rank,
-        "total_participants": len([a for a in attempts if a.status == "finished"]),
+        "total_participants": total_participants,
         "show_ranking": quiz.show_ranking,
     }), 200
 
@@ -522,7 +524,7 @@ def ranking(token):
         return jsonify({"ranking": []}), 200
 
     attempts = Attempt.query.filter_by(quiz_id=quiz.id).all()
-    ranking_list = compute_ranking(attempts, me_token=attempt.token)
+    ranking_list = compute_ranking(attempts, me_token=attempt.device_id)
 
     return jsonify({"ranking": ranking_list}), 200
 

@@ -9,12 +9,12 @@ import EmptyState from '@/components/EmptyState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 
 const router = useRouter()
-const { toast } = useToast()
+const { success, error } = useToast()
 
 const props = defineProps(['quizId'])
 
 const loading = ref(false)
-const error = ref(null)
+const loadError = ref(null)
 const stats = ref(null)
 const attempts = ref([])
 const wrongStats = ref([])
@@ -26,7 +26,7 @@ const searchName = ref('')
 
 async function load() {
   loading.value = true
-  error.value = null
+  loadError.value = null
   try {
     const [sRes, aRes] = await Promise.all([
       teacherApi.getStats(props.quizId),
@@ -39,7 +39,7 @@ async function load() {
     const msg = e.response && e.response.data && e.response.data.error
       ? e.response.data.error
       : 'Không tải được kết quả.'
-    error.value = msg
+    loadError.value = msg
     toast.error(msg, 'Lỗi tải kết quả')
   } finally {
     loading.value = false
@@ -93,7 +93,7 @@ async function confirmDeleteAttempt() {
   deleteDialog.value = false
   try {
     await teacherApi.deleteAttempt(id)
-    toast.success('Đã xóa lượt làm.', 'Xóa thành công')
+    success('Đã xóa lượt làm.', 'Xóa thành công')
     await load()
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error

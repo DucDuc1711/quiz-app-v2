@@ -1,11 +1,13 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 import { onMounted, onUnmounted, computed } from 'vue'
 import ToastHost from '@/components/ToastHost.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
+const { error: toastError } = useToast()
 auth.init()
 
 const isTeacherZone = computed(() => router.currentRoute.value.path.startsWith('/teacher'))
@@ -24,7 +26,12 @@ onUnmounted(() => {
 
 function onAuthLogout(e) {
   const role = e.detail && e.detail.role
-  const to = role === 'admin' ? '/admin/login' : role === 'teacher' ? '/teacher/login' : '/'
+  toastError('Phiên đăng nhập đã hết hạn.', 'Phiên hết hạn')
+  const to = role === 'admin'
+    ? '/admin/login'
+    : role === 'teacher'
+      ? { name: 'teacher-login', query: { redirect: router.currentRoute.value.path || '/' } }
+      : '/'
   router.push(to)
 }
 

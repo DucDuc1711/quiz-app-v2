@@ -1,8 +1,4 @@
-import axios from 'axios'
-
-const api = axios.create({
-  baseURL: '/api',
-})
+import api from '@/api/axios'
 
 function downloadBlob(res, filename) {
   const url = window.URL.createObjectURL(new Blob([res.data]))

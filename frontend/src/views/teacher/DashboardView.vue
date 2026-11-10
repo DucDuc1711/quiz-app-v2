@@ -11,11 +11,11 @@ import ErrorState from '@/components/ErrorState.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
-const { toast } = useToast()
+const { success, error } = useToast()
 
 const quizzes = ref([])
 const loading = ref(false)
-const error = ref(null)
+const loadError = ref(null)
 const search = ref('')
 const showCreateModal = ref(false)
 const newTitle = ref('')
@@ -43,7 +43,7 @@ function filtered() {
 
 async function load() {
   loading.value = true
-  error.value = null
+  loadError.value = null
   try {
     const res = await teacherApi.listQuizzes()
     quizzes.value = res.data
@@ -51,8 +51,8 @@ async function load() {
     const msg = e.response && e.response.data && e.response.data.error
       ? e.response.data.error
       : 'Không tải được danh sách bộ đề.'
-    error.value = msg
-    toast.error(msg, 'Lỗi tải danh sách')
+    loadError.value = msg
+    error(msg, 'Lỗi tải danh sách')
   } finally {
     loading.value = false
   }
@@ -60,20 +60,20 @@ async function load() {
 
 async function onCreate() {
   const t = newTitle.value.trim()
-  if (!t) { toast.error('Vui lòng nhập tiêu đề bộ đề.', 'Tiêu đề bắt buộc'); return }
+  if (!t) { error('Vui lòng nhập tiêu đề bộ đề.', 'Tiêu đề bắt buộc'); return }
   saving.value = true
   try {
     const res = await teacherApi.createQuiz({ title: t })
     const id = res.data.quiz.id
     showCreateModal.value = false
     newTitle.value = ''
-    toast.success('Đã tạo bộ đề.', 'Thành công')
+    success('Đã tạo bộ đề.', 'Thành công')
     router.push({ name: 'teacher-quiz', params: { id } })
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error
       ? e.response.data.error
       : 'Không tạo được bộ đề.'
-    toast.error(msg, 'Tạo thất bại')
+    error(msg, 'Tạo thất bại')
   } finally {
     saving.value = false
   }
@@ -90,13 +90,13 @@ async function confirmDelete() {
   deleteDialog.value = false
   try {
     await teacherApi.deleteQuiz(q.id)
-    toast.success('Đã xóa bộ đề "' + q.title + '".', 'Xóa thành công')
+    success('Đã xóa bộ đề "' + q.title + '".', 'Xóa thành công')
     await load()
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error
       ? e.response.data.error
       : 'Không xóa được bộ đề.'
-    toast.error(msg, 'Xóa thất bại')
+    error(msg, 'Xóa thất bại')
   } finally {
     deleteTarget.value = null
   }
@@ -107,12 +107,12 @@ async function toggleQuizOpen(quiz) {
   try {
     await teacherApi.updateQuiz(quiz.id, { is_open: !quiz.is_open })
     quiz.is_open = !quiz.is_open
-    toast.success(quiz.is_open ? 'Đã mở nhận bài.' : 'Đã đóng nhận bài.', 'Cập nhật trạng thái')
+    success(quiz.is_open ? 'Đã mở nhận bài.' : 'Đã đóng nhận bài.', 'Cập nhật trạng thái')
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error
       ? e.response.data.error
       : 'Không thay đổi trạng thái.'
-    toast.error(msg, 'Thất bại')
+    error(msg, 'Thất bại')
     await load()
   } finally {
     toggleOpen.value = null
@@ -133,8 +133,8 @@ onMounted(() => { load() })
       <LoadingState message="Đang tải bộ đề..." />
     </div>
 
-    <div v-else-if="error" style="display:flex;justify-content:center;padding:40px 0;">
-      <ErrorState :message="error" :retry="load" back-label="Trang chủ" back-route="/" />
+    <div v-else-if="loadError" style="display:flex;justify-content:center;padding:40px 0;">
+      <ErrorState :message="loadError" :retry="load" back-label="Trang chủ" back-route="/" />
     </div>
 
     <div v-else>

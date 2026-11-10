@@ -22,7 +22,7 @@ const typeIcon = (type) => (type === 'error' ? '\u26A0' : '\u2713')
         <div v-if="t.title" class="q-toast-title">{{ t.title }}</div>
         <div class="q-toast-message">{{ t.message }}</div>
       </div>
-      <button class="q-toast-close" @click="remove(t.id)" aria-label="Dong thong bao">&#215;</button>
+      <button class="q-toast-close" @click="remove(t.id)" aria-label="Đóng thông báo">&#215;</button>
     </div>
   </div>
 </template>

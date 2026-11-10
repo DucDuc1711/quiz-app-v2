@@ -33,7 +33,6 @@ class Quiz(db.Model):
     shuffle_questions = db.Column(db.Boolean, nullable=False, default=False)
     shuffle_choices = db.Column(db.Boolean, nullable=False, default=False)
     show_ranking = db.Column(db.Boolean, nullable=False, default=True)
-    allow_retake = db.Column(db.Boolean, nullable=False, default=False)
     is_public = db.Column(db.Boolean, nullable=False, default=True)
     source_quiz_id = db.Column(db.Integer, db.ForeignKey("quizzes.id", ondelete="SET NULL"), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))

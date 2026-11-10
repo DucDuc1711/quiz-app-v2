@@ -15,11 +15,11 @@ import ImportBlock from './ImportBlock.vue'
 
 const route = useRoute()
 const router = useRouter()
-const { toast } = useToast()
+const { success, error } = useToast()
 
 const quiz = ref(null)
 const loading = ref(false)
-const error = ref(null)
+const loadError = ref(null)
 const activeTab = ref('settings')
 const showQuestionForm = ref(false)
 const editingQuestion = ref(null)
@@ -29,7 +29,7 @@ const deleteAttemptsDialog = ref(false)
 
 async function load() {
   loading.value = true
-  error.value = null
+  loadError.value = null
   try {
     const res = await teacherApi.getQuiz(route.params.id)
     quiz.value = res.data
@@ -42,8 +42,8 @@ async function load() {
     const msg = e.response && e.response.data && e.response.data.error
       ? e.response.data.error
       : 'Không tải được bộ đề.'
-    error.value = msg
-    toast.error(msg, 'Lỗi tải')
+    loadError.value = msg
+    error(msg, 'Lỗi tải')
   } finally {
     loading.value = false
   }
@@ -85,20 +85,20 @@ async function onImported() {
 
 async function onCodeChanged(newCode) {
   quiz.value.access_code = newCode
-  toast.success('Mã tham gia đã cập nhật: ' + newCode, 'Mã mới')
+  success('Mã tham gia đã cập nhật: ' + newCode, 'Mã mới')
 }
 
 async function deleteQuiz() {
   deleteQuizDialog.value = false
   try {
     await teacherApi.deleteQuiz(quiz.value.id)
-    toast.success('Đã xóa bộ đề.', 'Xóa thành công')
+    success('Đã xóa bộ đề.', 'Xóa thành công')
     router.push({ name: 'teacher' })
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error
       ? e.response.data.error
       : 'Không xóa được bộ đề.'
-    toast.error(msg, 'Xóa thất bại')
+    error(msg, 'Xóa thất bại')
   }
 }
 
@@ -106,13 +106,13 @@ async function deleteAllAttempts() {
   deleteAttemptsDialog.value = false
   try {
     await teacherApi.deleteQuizAttempts(quiz.value.id)
-    toast.success('Đã xóa toàn bộ kết quả làm bài. Bạn có thể chỉnh sửa câu hỏi lại.', 'Xóa kết quả')
+    success('Đã xóa toàn bộ kết quả làm bài. Bạn có thể chỉnh sửa câu hỏi lại.', 'Xóa kết quả')
     await load()
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error
       ? e.response.data.error
       : 'Không xóa được kết quả.'
-    toast.error(msg, 'Xóa thất bại')
+    error(msg, 'Xóa thất bại')
   }
 }
 

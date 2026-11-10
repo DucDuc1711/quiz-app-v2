@@ -28,7 +28,6 @@ function apiErrorMessage(e, fallback) {
   if (e.response && e.response.data && e.response.data.error) return e.response.data.error
   if (e.response && e.response.status === 404) return 'Không tìm thấy bộ đề với mã này.'
   if (e.response && e.response.status === 403) return 'Bộ đề đóng hoặc chưa vào thời gian làm bài.'
-  if (e.response && e.response.status === 409) return 'Thiết bị này đã làm bộ đề này.'
   return fallback
 }
 

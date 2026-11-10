@@ -80,7 +80,7 @@ onMounted(loadResult)
           <div v-else class="q-table-wrap">
             <table class="q-rank-table">
               <thead>
-                <tr><th>Hang</th><th>Ten hoc sinh</th><th>Diem</th><th>Dung</th><th>Thoi gian</th></tr>
+                <tr><th>Hạng</th><th>Tên học sinh</th><th>Điểm</th><th>Đúng</th><th>Thời gian</th></tr>
               </thead>
               <tbody>
                 <tr v-for="(r, i) in ranking" :key="r.name + '|' + r.score + '|' + (r.rank || i)" :class="{ 'q-me': r.is_me }">

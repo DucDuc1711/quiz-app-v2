@@ -4,17 +4,17 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import AuthCard from '@/components/AuthCard.vue'
+import PasswordField from '@/components/PasswordField.vue'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
-const { toast } = useToast()
+const { success, error } = useToast()
 
 const redirect = computed(() => route.query.redirect || '/teacher')
 
 const username = ref('')
 const password = ref('')
-const showPassword = ref(false)
 const loading = ref(false)
 const fieldErrors = ref({})
 
@@ -54,7 +54,7 @@ async function onLogin() {
       ? e.response.data.error
       : 'Đăng nhập không thành công. Vui lòng thử lại.'
     fieldErrors.value = { _form: msg }
-    toast.error(msg, 'Đăng nhập không thành công')
+    error(msg, 'Đăng nhập không thành công')
     loading.value = false
     return
   }
@@ -63,12 +63,14 @@ async function onLogin() {
   // nên lỗi ở đây không bị báo là "đăng nhập thất bại".
   try {
     if (user && user.role === 'admin') {
-      toast.error('Tài khoản admin vui lòng đăng nhập tại /admin/login', 'Không thể đăng nhập')
+      error('Tài khoản admin vui lòng đăng nhập tại /admin/login', 'Không thể đăng nhập')
       loading.value = false
       return
     }
     auth.setAuth(token, user)
-    toast.success('Đăng nhập thành công.', 'Chào mừng')
+    try {
+      success('Đăng nhập thành công.', 'Chào mừng')
+    } catch (_) {}
     router.push(redirect.value)
   } finally {
     loading.value = false
@@ -106,22 +108,13 @@ async function onLogin() {
 
       <div class="q-form-group">
         <label class="q-form-label">Mật khẩu</label>
-        <div class="q-password-wrap">
-          <input
-            class="q-form-control"
-            :type="showPassword ? 'text' : 'password'"
-            v-model="password"
-            placeholder="••••••••"
-            autocomplete="current-password"
-            autocapitalize="off"
-            autocorrect="off"
-            spellcheck="false"
-            :class="{ 'q-form-error': fieldErrors.password }"
-          />
-          <button type="button" class="q-password-toggle" @click="showPassword = !showPassword">
-            {{ showPassword ? 'Ẩn' : 'Hiện' }}
-          </button>
-        </div>
+        <PasswordField
+          v-model="password"
+          aria-label="Mật khẩu"
+          autocomplete="current-password"
+          placeholder="••••••••"
+          :error="!!fieldErrors.password"
+        />
         <div v-if="fieldErrors.password" class="q-form-error">{{ fieldErrors.password }}</div>
       </div>
     </template>

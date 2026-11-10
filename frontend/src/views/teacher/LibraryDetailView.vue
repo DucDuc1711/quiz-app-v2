@@ -9,16 +9,16 @@ import ErrorState from '@/components/ErrorState.vue'
 
 const router = useRouter()
 const route = useRoute()
-const { toast } = useToast()
+const { success, error } = useToast()
 
 const quiz = ref(null)
 const loading = ref(false)
-const error = ref(null)
+const loadError = ref(null)
 const cloning = ref(false)
 
 async function load() {
   loading.value = true
-  error.value = null
+  loadError.value = null
   try {
     const res = await teacherApi.getLibraryQuiz(route.params.id)
     quiz.value = res.data
@@ -26,7 +26,7 @@ async function load() {
     const msg = e.response && e.response.data && e.response.data.error
       ? e.response.data.error
       : 'Không tải được chi tiết bộ đề.'
-    error.value = msg
+    loadError.value = msg
     toast.error(msg, 'Lỗi tải chi tiết')
   } finally {
     loading.value = false
@@ -43,7 +43,7 @@ async function onClone() {
   try {
     const res = await teacherApi.cloneQuiz(route.params.id)
     const id = res.data.quiz.id
-    toast.success('Đã sao chép bộ đề.', 'Thành công')
+    success('Đã sao chép bộ đề.', 'Thành công')
     router.push({ name: 'teacher-quiz', params: { id } })
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error
@@ -70,8 +70,8 @@ onMounted(() => { load() })
       <LoadingState message="Đang tải chi tiết..." />
     </div>
 
-    <div v-else-if="error" style="display:flex;justify-content:center;padding:40px 0;">
-      <ErrorState :message="error" :retry="load" back-label="Về thư viện" back-route="teacher-library" />
+    <div v-else-if="loadError" style="display:flex;justify-content:center;padding:40px 0;">
+      <ErrorState :message="loadError" :retry="load" back-label="Về thư viện" back-route="teacher-library" />
     </div>
 
     <div v-else-if="quiz" class="q-library-detail">

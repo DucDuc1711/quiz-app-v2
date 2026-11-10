@@ -53,19 +53,23 @@ def create_app(config_object=None):
 
     @jwt.expired_token_loader
     def expired_token_callback(_jwt_header, _jwt_data):
-        return jsonify({"error": "Token da het han. Vui long dang nhap lai."}), 401
+        return jsonify({"error": "Phiên đăng nhập đã hết hạn."}), 401
 
     @jwt.invalid_token_loader
     def invalid_token_callback(reason):
-        return jsonify({"error": "Token không hợp lệ: " + reason}), 401
+        return jsonify({"error": "Phiên đăng nhập không hợp lệ."}), 401
 
     @jwt.unauthorized_loader
     def missing_token_callback(reason):
-        return jsonify({"error": "Cần xác thực: " + reason}), 401
+        return jsonify({"error": "Chưa đăng nhập hoặc thiếu thông tin xác thực."}), 401
 
     @jwt.revoked_token_loader
     def revoked_token_callback(_jwt_header, _jwt_data):
         return jsonify({"error": "Token đã bị thu hồi. Vui lòng đăng nhập lại."}), 401
+
+    @jwt.needs_fresh_token_loader
+    def needs_fresh_token_callback(_jwt_header, _jwt_data):
+        return jsonify({"error": "Phiên đăng nhập cần làm mới. Vui lòng đăng nhập lại."}), 401
 
     from cli import register_cli
     register_cli(app)

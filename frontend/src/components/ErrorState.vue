@@ -2,9 +2,9 @@
 import { useRouter } from 'vue-router'
 
 const props = defineProps({
-  message: { type: String, default: 'Co loi xay ra.' },
+  message: { type: String, default: 'Có lỗi xảy ra.' },
   retry: { type: Function, default: null },
-  backLabel: { type: String, default: 'Ve danh sach bo de' },
+  backLabel: { type: String, default: 'Về danh sách bộ đề' },
   backRoute: { type: String, default: 'teacher' },
 })
 
@@ -14,10 +14,10 @@ const router = useRouter()
 <template>
   <div class="q-state">
     <div class="q-error-icon">&#128310;</div>
-    <div class="q-state-title">Co loi xay ra</div>
+    <div class="q-state-title">Có lỗi xảy ra</div>
     <div class="q-error-message" v-text="props.message"></div>
     <div class="q-error-actions">
-      <button v-if="props.retry" class="q-btn q-btn-primary" @click="props.retry">Thu lai</button>
+      <button v-if="props.retry" class="q-btn q-btn-primary" @click="props.retry">Thử lại</button>
       <button class="q-btn q-btn-outline" @click="router.push({ name: props.backRoute })">{{ props.backLabel }}</button>
     </div>
   </div>

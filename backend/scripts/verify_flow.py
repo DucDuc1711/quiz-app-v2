@@ -45,7 +45,7 @@ def run_verification():
             owner_id=admin.id, title='Verify Flow', description='Test 3 types',
             access_code='VERIFY3', is_open=True, question_time=30,
             shuffle_questions=False, shuffle_choices=False,
-            show_ranking=True, allow_retake=False, is_public=True
+            show_ranking=True, is_public=True
         )
         db.session.add(quiz)
         db.session.flush()

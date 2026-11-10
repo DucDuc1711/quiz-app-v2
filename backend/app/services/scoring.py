@@ -29,19 +29,36 @@ def compute_time_spent(answers):
 
 def compute_ranking(attempts, me_token=None):
     """Tinh bang xep hang cho cac attempt da finished.
-
+    Chi tinh attempt finished. Moi device_id chi mot dong = luot tot nhat
+    (score cao nhat, roi time_spent thap nhat, roi finished_at som nhat).
     Sap xep: score giam dan, time_spent tang dan, finished_at tang dan.
     Cung score va cung time_spent thi cung hang (1, 2, 2, 4).
+    total_participants = so thiet bi da hoan thanh.
     Tra ve list dict: {rank, name, score, correct_answers, time_spent, finished_at, is_me}.
     """
     finished = [a for a in attempts if a.status == "finished" and a.finished_at is not None]
-    finished.sort(key=lambda a: (-a.score, a.time_spent, a.finished_at))
+
+    # Nhom theo device_id, lay attempt tot nhat cua moi device
+    best_by_device = {}
+    for a in finished:
+        if a.device_id not in best_by_device:
+            best_by_device[a.device_id] = a
+        else:
+            curr = best_by_device[a.device_id]
+            # So sanh: score cao hon, hoac score bang ma time_spent thap hon, hoac ca 2 bang ma finished_at som hon
+            if (a.score > curr.score or
+                (a.score == curr.score and a.time_spent < curr.time_spent) or
+                (a.score == curr.score and a.time_spent == curr.time_spent and a.finished_at < curr.finished_at)):
+                best_by_device[a.device_id] = a
+
+    best_attempts = list(best_by_device.values())
+    best_attempts.sort(key=lambda a: (-a.score, a.time_spent, a.finished_at))
 
     ranking = []
     prev_score = None
     prev_time = None
     prev_rank = 0
-    for idx, attempt in enumerate(finished, start=1):
+    for idx, attempt in enumerate(best_attempts, start=1):
         if attempt.score == prev_score and attempt.time_spent == prev_time:
             rank = prev_rank
         else:
@@ -53,7 +70,7 @@ def compute_ranking(attempts, me_token=None):
             "correct_answers": attempt.correct_answers,
             "time_spent": attempt.time_spent,
             "finished_at": attempt.finished_at.isoformat() if attempt.finished_at else None,
-            "is_me": attempt.token == me_token,
+            "is_me": attempt.device_id == me_token,
         })
         prev_score = attempt.score
         prev_time = attempt.time_spent

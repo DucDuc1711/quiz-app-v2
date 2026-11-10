@@ -7,7 +7,7 @@ from models import User, Quiz, Question, Choice, Attempt, AttemptAnswer
 from app.services.scoring import check_answer, compute_score, compute_time_spent, compute_ranking
 
 
-def _make_quiz(app_ctx, code="ABC123", allow_retake=False, question_time=30,
+def _make_quiz(app_ctx, code="ABC123", question_time=30,
                shuffle_questions=False, shuffle_choices=False, show_ranking=True,
                open_at=None, close_at=None, is_open=True):
     with app_ctx:
@@ -19,7 +19,7 @@ def _make_quiz(app_ctx, code="ABC123", allow_retake=False, question_time=30,
             owner_id=admin.id, title="Test Quiz", description="desc",
             access_code=code, is_open=is_open, question_time=question_time,
             shuffle_questions=shuffle_questions, shuffle_choices=shuffle_choices,
-            show_ranking=show_ranking, allow_retake=allow_retake, is_public=True,
+            show_ranking=show_ranking, is_public=True,
             open_at=open_at, close_at=close_at,
         )
         db.session.add(quiz)
@@ -102,8 +102,8 @@ def test_compute_ranking(app):
 
         now = datetime.now(timezone.utc)
 
-        def mk(name, score, time_spent, finished, token="tok"):
-            a = Attempt(quiz_id=quiz.id, student_name=name, device_id="d",
+        def mk(name, score, time_spent, finished, device_id, token="tok"):
+            a = Attempt(quiz_id=quiz.id, student_name=name, device_id=device_id,
                         token=token, status="finished", phase="question",
                         current_index=0, total_questions=5, correct_answers=int(score),
                         score=score, time_spent=time_spent,
@@ -111,13 +111,14 @@ def test_compute_ranking(app):
             db.session.add(a)
             return a
 
-        a1 = mk("Alice", 10.0, 100.0, now, token="tok-alice")
-        a2 = mk("Bob", 8.0, 90.0, now + timedelta(seconds=10), token="tok-bob")
-        a3 = mk("Charlie", 8.0, 90.0, now + timedelta(seconds=20), token="tok-charlie")
-        a4 = mk("Dave", 5.0, 200.0, now + timedelta(seconds=30), token="tok-dave")
+        # Different device_ids so each gets its own ranking entry
+        a1 = mk("Alice", 10.0, 100.0, now, device_id="d1", token="tok-alice")
+        a2 = mk("Bob", 8.0, 90.0, now + timedelta(seconds=10), device_id="d2", token="tok-bob")
+        a3 = mk("Charlie", 8.0, 90.0, now + timedelta(seconds=20), device_id="d3", token="tok-charlie")
+        a4 = mk("Dave", 5.0, 200.0, now + timedelta(seconds=30), device_id="d4", token="tok-dave")
         db.session.commit()
 
-        ranking = compute_ranking([a1, a2, a3, a4], me_token=a3.token)
+        ranking = compute_ranking([a1, a2, a3, a4], me_token=a3.device_id)
         assert ranking[0]["rank"] == 1
         assert ranking[0]["name"] == "Alice"
         assert ranking[1]["rank"] == 2
@@ -178,7 +179,7 @@ def test_join_name_empty(client, app):
 
 def test_join_device_limit_finished(client, app):
     with app.app_context():
-        code = _make_quiz(app.app_context(), allow_retake=False)
+        code = _make_quiz(app.app_context())
         quiz = Quiz.query.filter_by(access_code=code).first()
         attempt = Attempt(
             token="tok-finished", quiz_id=quiz.id, student_name="Old",
@@ -193,12 +194,59 @@ def test_join_device_limit_finished(client, app):
         "name": "New",
         "device_id": "dev-1",
     })
-    assert resp.status_code == 409
+    # Now: finished attempt -> new attempt created (201), not 409
+    assert resp.status_code == 201
+    data = resp.get_json()
+    assert data["resumed"] is False
+    assert data["attempt_token"] != "tok-finished"
+
+
+def test_join_device_multiple_retakes(client, app):
+    """Thiet bi co the lam bai nhieu lan (unlimited retakes)."""
+    with app.app_context():
+        code = _make_quiz(app.app_context())
+        quiz = Quiz.query.filter_by(access_code=code).first()
+
+        # Lan 1: lam bai va ket thuc
+        attempt1 = Attempt(
+            token="tok-1", quiz_id=quiz.id, student_name="Lan 1",
+            device_id="dev-multi", status="finished", phase="question",
+            current_index=0, total_questions=3, score=5.0, time_spent=100.0,
+            finished_at=datetime.now(timezone.utc),
+        )
+        db.session.add(attempt1)
+        db.session.commit()
+
+    # Lan 2: join lai -> tao attempt moi
+    resp2 = client.post("/api/play/join", json={
+        "code": code, "name": "Lan 2", "device_id": "dev-multi",
+    })
+    assert resp2.status_code == 201
+    data2 = resp2.get_json()
+    assert data2["resumed"] is False
+    assert data2["attempt_token"] != "tok-1"
+
+    # Finish attempt 2
+    with app.app_context():
+        attempt2 = Attempt.query.filter_by(token=data2["attempt_token"]).first()
+        attempt2.status = "finished"
+        attempt2.finished_at = datetime.now(timezone.utc)
+        db.session.commit()
+
+    # Lan 3: join lai -> tao attempt moi
+    resp3 = client.post("/api/play/join", json={
+        "code": code, "name": "Lan 3", "device_id": "dev-multi",
+    })
+    assert resp3.status_code == 201
+    data3 = resp3.get_json()
+    assert data3["resumed"] is False
+    assert data3["attempt_token"] != "tok-1"
+    assert data3["attempt_token"] != data2["attempt_token"]
 
 
 def test_join_device_resume_in_progress(client, app):
     with app.app_context():
-        code = _make_quiz(app.app_context(), allow_retake=False)
+        code = _make_quiz(app.app_context())
         quiz = Quiz.query.filter_by(access_code=code).first()
         attempt = Attempt(
             token="tok-resume", quiz_id=quiz.id, student_name="Old",
@@ -223,7 +271,7 @@ def test_join_device_resume_in_progress(client, app):
 
 def test_join_allow_retake(client, app):
     with app.app_context():
-        code = _make_quiz(app.app_context(), allow_retake=True)
+        code = _make_quiz(app.app_context())
         quiz = Quiz.query.filter_by(access_code=code).first()
         attempt = Attempt(
             token="tok-old", quiz_id=quiz.id, student_name="Old",

@@ -7,7 +7,7 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 const props = defineProps(['questions', 'quizId', 'locked'])
 const emit = defineEmits(['edit', 'delete', 'reorder'])
 
-const { toast } = useToast()
+const { success, error } = useToast()
 const deleteDialog = ref(false)
 const deleteTarget = ref(null)
 const deleteMessage = computed(() => 'B\u1eb7n ch\u00e1c ch\u1ea5n mu\u01b0\u1ed1n x\u00f3a c\u00e2u h\u1ecfi: "' + (deleteTarget.value?.content || '').slice(0, 60) + '...?')
@@ -47,7 +47,7 @@ async function confirmDelete() {
   deleteDialog.value = false
   try {
     await teacherApi.deleteQuestion(q.id)
-    toast.success('Đã xóa câu hỏi.', 'Xóa thành công')
+    success('Đã xóa câu hỏi.', 'Xóa thành công')
     emit('delete', q.id)
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error
