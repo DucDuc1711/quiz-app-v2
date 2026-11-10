@@ -7,7 +7,11 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const store = useAuthStore()
-  if (store.token) {
+  const url = config.url ? String(config.url) : ''
+  const isAuthEndpoint = url.startsWith('/auth/') || url.startsWith('/api/auth/')
+  const isPlayEndpoint = url.startsWith('/play/') || url.startsWith('/api/play/')
+  
+  if (store.token && !isAuthEndpoint && !isPlayEndpoint) {
     config.headers.Authorization = `Bearer ${store.token}`
   }
   return config

@@ -3,10 +3,19 @@ import { defineStore } from 'pinia'
 const TOKEN_KEY = 'quiz_teacher_token'
 const USER_KEY = 'quiz_teacher_user'
 
+function getStoredUser() {
+  try {
+    const raw = localStorage.getItem(USER_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch (_) {
+    return null
+  }
+}
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: localStorage.getItem(TOKEN_KEY) || null,
-    user: null,
+    user: getStoredUser(),
   }),
   getters: {
     isAuthenticated: (state) => !!state.token,

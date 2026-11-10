@@ -31,9 +31,10 @@
   - scoring.py compute_ranking: chỉ attempt finished, nhóm theo device_id lấy attempt tốt nhất (score cao -> time thấp -> finished_at sớm); cùng score & time -> cùng hạng; total_participants = số device đã finished; rank/is_me dựa trên device_id
   - play.py result/ranking: me_token dùng device_id, total_participants đếm distinct device
   - Frontend: HomeView.vue xóa error 409 "đã làm"; QuizSettings.vue xóa checkbox "Cho làm lại"
-  - Test: test_play.py 30 pass (test_join_device_multiple_retakes mới), test_teacher.py 25 pass, test_auth.py 14 pass, test_admin.py 13 pass, test_codes.py 2, test_models.py 2, test_flow_p3.py 4, test_p3_fixes.py 2, test_uploads.py 7 = 99 test
+  - Test: test_play.py 30 pass (test_join_device_multiple_retakes mới), test_teacher.py 25 pass, test_auth.py 14 pass, test_admin.py 13 pass, test_codes.py 2, test_models.py 2, test_flow_p3.py (4), test_p3_fixes.py (2), test_uploads.py (7) = 99 test
   - verify_teacher.py PASS, verify_flow.py PASS
-- [ ] Chặng C (mục 7-9): Vitest, Playwright e2e, báo cáo, commit
+- [x] Chặng C1 (mục 7): Vitest — 8 file test (axios.test.js, useToast.test.js, auth.test.js, routerGuard.test.js, LoginView.test.js, RegisterView.test.js, DashboardView.test.js, PasswordField.test.js), 29 test pass; npx vitest run --reporter=dot PASS; npm run build PASS; pytest PASS; verify_flow.py PASS; verify_teacher.py PASS; node scripts/check_vietnamese.mjs PASS
+- [ ] Chặng C2 (mục 8-9): Playwright e2e, báo cáo, commit
 - [x] Bước 1: Sửa lỗi gốc backend (play.py): state() đọc attempt.phase, trả feedback khi phase == "feedback"; tự ghi "không trả lời" nếu quá hạn chưa answer; answer() nhận khi phase còn "question", quá hạn vẫn chấm, mảng rỗng hợp lệ, validate choice_ids là list và thuộc câu hỏi, 409 khi trả lời lại; lỗi cú pháp error_response chuẩn 2 tham số; _get_attempt_or_404 trả 2 phần tử; db.session.get thay Question.query.get; chuỗi tiếng Việt có dấu đầy đủ.
 - [x] Bước 2: Test backend (pytest, DB :memory:) — thêm/sửa test: mảng rỗng 200 is_correct false; thiếu trường 400; choice_ids không phải list 400; chọn id không thuộc câu hỏi 400; gửi đúng hạn; gửi quá hạn chọn đúng (timed_out true và is_correct true) và chọn sai; state sau answer trả phase feedback (câu giữa, câu cuối, answer rỗng); gọi state nhiều lần ở feedback kết quả giống nhau không tạo thêm bản ghi; trả lời lại 409; token sai 404; question_id sai 409; next khi chưa answer 409. pytest xanh toàn bộ (93 test).
 - [x] Bước 3: Kiểm tra PlayView với JSON thật — sửa loadState() không gán question.value = undefined ở phase feedback (khắc phục lỗi phản hồi không hiện); giữ selected_value = đáp án đã chọn ở feedback; backend _build_feedback_payload trả thêm object question để F5 ở phase feedback vẫn render; chuỗi thông báo FE có dấu ("Không lấy được trạng thái câu hỏi.", "Không nộp được đáp án.", "Không lấy câu tiếp theo.", "Câu {i} / {total}"). Xác minh: mount luôn GET state, không lưu sessionStorage, lỗi API hiện thông báo tiếng Việt + nút "Thử lại", nút "Chốt!" cố định, Enter chốt, chống bấm đúp, nhấp nháy ≤5 giây, hết giờ tự gửi đáp án đang chọn, mốc thời gian không đếm tick, giữ tab_hidden, cảnh báo rời trang, không nút quay lại, không nút "Câu tiếp".
@@ -75,6 +76,7 @@
 - Username và email không phân biệt hoa thường: lưu chữ thường, tìm bằng func.lower(User.username/email) trong auth.py; dùng normalize_username/normalize_email/normalize_login_value trong utils.py cho mọi nơi (register, login, admin_login, cli create-admin/seed).
 - Mật khẩu phân biệt hoa thường và giữ nguyên văn: không strip, không lower, so sánh bằng check_password_hash nguyên văn.
 - Ô mã bộ đề học sinh là ô duy nhất được ép chữ hoa (HomeView.vue JS toUpperCase); mọi ô username/email/mật khẩu bỏ ép chữ hoa, dùng autocapitalize/autocorrect/spellcheck/autocomplete phù hợp.
+- P5: có Vitest (8 file test, 29 test) cho axios interceptor, useToast, auth store, router guard, LoginView, RegisterView, DashboardView, PasswordField.
 
 ## Thiết kế giao diện (P4)
 - Đồng hồ báo thức: SVG đồng hồ, số giây làm tròn lên ở giữa, thanh chạy tuyến tính bằng requestAnimationFrame/CSS animation, deadline tính từ lúc nhận seconds_left (không cộng dồn tick).
@@ -88,6 +90,12 @@
   * Ép chữ hoa toàn bộ ô nhập do CSS text-transform: uppercase trên .q-form-control trong theme.css (chỉ đổi hiển thị, không đổi giá trị gửi đi). Ô mã bộ đề học sinh giữ viết hoa bằng JS ở HomeView.vue (ô duy nhất được phép ép).
   * Báo "Đăng ký thất bại" giả dù backend đã tạo thành công: try/catch trong RegisterView/LoginView bao trộn lệnh gọi API lẫn bước sau (setAuth, toast, router.push), lỗi phía sau bị nuốt và hiện câu dự phòng. Sửa bằng tách try/catch.
   * Đăng nhập không phân biệt hoa thường: auth.py trước đây so sánh User.username == username_or_email (phân biệt). Sửa bằng func.lower(User.username) == giá trị đã lower OR func.lower(User.email) == giá trị đã lower, cùng normalize_login_value (strip + lower). Chuỗi thông báo backend không dấu → đã sửa thành có dấu.
+- P5 lần 2 (đã sửa):
+  * Toast: 14 chỗ viết const { toast } = useToast() trong khi composable trả { toasts, success, error, remove } → sửa thành const { toasts, success, error, remove } = useToast() và dùng toast.toasts.value trong test.
+  * Thiếu Authorization: api/teacher.js tạo axios.create riêng không có interceptor → sửa dùng shared axios instance (@/api/axios) đã có interceptor gắn Bearer quiz_teacher_token cho /api/teacher/* (trừ /api/auth/* và /api/play/*), và xóa phiên + dispatch 'auth-logout' khi 401 trên endpoint không phải login.
+  * JWT trả tiếng Anh → sửa tất cả JWT callbacks trong backend/app/__init__.py sang tiếng Việt có dấu.
+  * Chuỗi không dấu trong ErrorState/LoadingState/ResultView/ToastHost → đã sửa sang có dấu đầy đủ.
+  * Nút Hiện/Ẩn PasswordField: aria-label tiếng Việt ('Hiện mật khẩu' / 'Ẩn mật khẩu'), đổi type của ô input giữa 'password' và 'text'.
 
 ## Đề xuất sửa spec
 - GET /api/teacher/library/:id cần trả choices kèm is_correct để giao diện thư viện chi tiết đánh dấu đáp án đúng (đã bổ sung vào backend và cập nhật test, pytest vẫn xanh, không đổi tên trường cũ).
@@ -111,9 +119,13 @@ Frontend (terminal 2, chạy song song với backend):
 - Chạy dev: npm run dev (mặc định cổng 5173, vite proxy /api sang http://127.0.0.1:5000)
 - Truy cập: http://127.0.0.1:5173
 
+Chạy kiểm tra frontend: npm test (Vitest, 29 test) và npm run build.
+
 Chạy kiểm tra backend: pytest (toàn bộ 93 test, DB :memory:) và python scripts/verify_teacher.py (kiểm tra API giáo viên P5, toàn PASS, thoát mã 0).
 
-Mẹo test làm lại cùng máy: mở cửa sổ ẩn danh hoặc vào F12 Console gõ `localStorage.clear()` rồi tải lại trang để bắt đầu lượt làm mới.
+Kiểm tra tiếng Việt: node scripts/check_vietnamese.mjs (PASS = không chuỗi tiếng Việt không dấu trong src/app).
+
+Mẹo test làm lại cùng máy: nên dùng một địa chỉ cố định (localhost hoặc 127.0.0.1) vì mỗi địa chỉ có localStorage riêng. Có thể xóa hai khóa rác access_token, user trong localStorage (F12 Console gõ `localStorage.removeItem('access_token'); localStorage.removeItem('user')`) rồi tải lại trang để bắt đầu lượt làm mới.
 
 Cách lấy mã bộ đề: xem access_code trong trang giáo viên hoặc dùng bộ đề seed (mã trong database/seeder).
 
