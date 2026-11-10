@@ -34,7 +34,44 @@
   - Test: test_play.py 30 pass (test_join_device_multiple_retakes mới), test_teacher.py 25 pass, test_auth.py 14 pass, test_admin.py 13 pass, test_codes.py 2, test_models.py 2, test_flow_p3.py (4), test_p3_fixes.py (2), test_uploads.py (7) = 99 test
   - verify_teacher.py PASS, verify_flow.py PASS
 - [x] Chặng C1 (mục 7): Vitest — 8 file test (axios.test.js, useToast.test.js, auth.test.js, routerGuard.test.js, LoginView.test.js, RegisterView.test.js, DashboardView.test.js, PasswordField.test.js), 29 test pass; npx vitest run --reporter=dot PASS; npm run build PASS; pytest PASS; verify_flow.py PASS; verify_teacher.py PASS; node scripts/check_vietnamese.mjs PASS
-- [ ] Chặng C2 (mục 8-9): Playwright e2e, báo cáo, commit
+## Chặng C2 (mục 8-9): Playwright e2e
+- Đã cài @playwright/test v1.65.0 (devDependency)
+- Đã tạo playwright.config.js: backend cổng 5100 (DATABASE_URL=sqlite:///instance/e2e.db), frontend cổng 5273 (VITE_API_TARGET=http://127.0.0.1:5100), e2e DB là backend/instance/e2e.db (trong .gitignore)
+- Đã cập nhật vite.config.js: đọc VITE_API_TARGET từ env để proxy /api
+- Đã tạo frontend/tests/e2e/quiz-app.spec.js: 10 test cases (đăng ký, library, đăng xuất/đăng nhập sai/đúng, nút Hiện/Ẩn, tạo bộ đề, học sinh làm bài 2 lần, giáo viên xem kết quả, quét không dấu 6 trang, quét trang chi tiết + kết quả)
+- Đã cập nhật .gitignore (root + frontend): thêm e2e.db, playwright-report/, test-results/
+- Đã thêm script "test:e2e": "playwright test" vào frontend/package.json
+- CHƯA CHẠY ĐƯỢC e2e: npx playwright install chromium bị kẹt khi tải chrome-win64.zip từ cdn.playwright.dev (mạng chặn/gián tiếp). Không có Chrome/Chromium trên hệ thống. Không thể chạy npm run test:e2e.
+- Việc còn tồn đọng: cài được Chromium rồi chạy npm run test:e2e till xanh.
+
+## Lỗi đã-known (nguyên nhân thật + cách sửa)
+1. Toast undefined: 14 chỗ viết `const { toast } = useToast()` trong khi composable trả `{ toasts, success, error, remove }`. Sửa thành `const { toasts, success, error, remove } = useToast()` ở LoginView.vue, RegisterView.vue, DashboardView.vue và các view khác.
+2. Thiếu Authorization: api/teacher.js tạo axios.create riêng không có interceptor → sửa dùng shared axios instance (@/api/axios) đã có interceptor gắn Bearer quiz_teacher_token cho /api/teacher/* (trừ /api/auth/* và /api/play/*), và xóa phiên + dispatch 'auth-logout' khi 401 trên endpoint không phải login.
+3. JWT trả tiếng Anh: tất cả JWT callbacks trong backend/app/__init__.py (expired_token_loader, invalid_token_loader, unauthorized_loader, revoked_token_loader, needs_fresh_token_loader) trả {"error": "..."} tiếng Việt có dấu với mã 401.
+4. Chuỗi không dấu: ErrorState "Co loi xay ra", "Thu lai"; LoadingState; ResultView header; ToastHost → sửa sang có dấu đầy đủ. Tạo script scripts/check_vietnamese.mjs quét frontend/src và backend/app.
+5. Nút Hiện/Ẩn mật khẩu: tạo PasswordField.vue dùng chung, aria-label tiếng Việt, type chuyển đổi password/text, nút bo tròn cùng hàng với ô input. Áp dụng cho LoginView.vue, RegisterView.vue.
+6. localStorage khóa rác: access_token, user của dự án cũ không được đọc/ghi bởi dự án này (chỉ dùng quiz_teacher_token, quiz_teacher_user).
+
+## Quyết định (P5 lượt 2)
+- Bỏ cột Quiz.allow_retake (migration batch_alter_table, xóa mọi tham chiếu trong models, routes, views, tests, scripts verify).
+- Làm lại không giới hạn: play.py join không còn 409 "đã làm"; in_progress → resume 200 cùng token; finished/no attempt → tạo mới 201.
+- Xếp hạng học sinh: chỉ tính attempt finished; mỗi device_id một dòng = lượt tốt nhất (score cao nhất, time_spent thấp nhất, finished_at sớm nhất); cùng score & time → cùng hạng; total_participants = số device đã finished; rank/is_me dựa trên device_id. Giáo viên xem mọi lượt (attempts, stats, export không đổi).
+- Vitest: 8 file test, 29 test pass. Playwright: cấu hình sẵn, chờ cài Chromium để chạy e2e.
+
+## Cách chạy (cập nhật)
+- Frontend kiểm tra: npm test (Vitest, 29 test), npm run build, node scripts/check_vietnamese.mjs
+- Backend kiểm tra: pytest (DB :memory:), python scripts/verify_flow.py, python scripts/verify_teacher.py
+- E2E (chưa chạy được do Chromium): npm run test:e2e (cần npx playwright install chromium thành công trước)
+- Nên dùng một địa chỉ cố định (localhost hoặc 127.0.0.1) vì mỗi địa chỉ có localStorage riêng. Có thể xóa hai khóa rác access_token, user trong localStorage (F12 Console) rồi tải lại trang.
+- E2E dùng DB riêng backend/instance/e2e.db, cổng backend 5100, frontend 5273, không đụng quiz.db thật.
+
+## Checklist
+- [x] P0–P4: đã xong (xem mục "Quyết định / thay đổi so với đặc tả")
+- [x] P5 lượt 2 Chặng A (mục 1-4): sửa lỗi giao diện — PASS
+- [x] P5 lượt 2 Chặng B (mục 5-6): bỏ allow_retake, làm lại không giới hạn, xếp hạng lượt tốt nhất — PASS
+- [x] P5 lượt 2 Chặng C1 (mục 7): Vitest 29 test pass — PASS
+- [ ] P5 lượt 2 Chặng C2 (mục 8-9): Playwright e2e — ĐÃ CẤU HÌNH, CHƯA CHẠY ĐƯỢC (Chromium không cài được do mạng)
+- [ ] P6: admin — KHÔNG làm trong P5o cáo, commit
 - [x] Bước 1: Sửa lỗi gốc backend (play.py): state() đọc attempt.phase, trả feedback khi phase == "feedback"; tự ghi "không trả lời" nếu quá hạn chưa answer; answer() nhận khi phase còn "question", quá hạn vẫn chấm, mảng rỗng hợp lệ, validate choice_ids là list và thuộc câu hỏi, 409 khi trả lời lại; lỗi cú pháp error_response chuẩn 2 tham số; _get_attempt_or_404 trả 2 phần tử; db.session.get thay Question.query.get; chuỗi tiếng Việt có dấu đầy đủ.
 - [x] Bước 2: Test backend (pytest, DB :memory:) — thêm/sửa test: mảng rỗng 200 is_correct false; thiếu trường 400; choice_ids không phải list 400; chọn id không thuộc câu hỏi 400; gửi đúng hạn; gửi quá hạn chọn đúng (timed_out true và is_correct true) và chọn sai; state sau answer trả phase feedback (câu giữa, câu cuối, answer rỗng); gọi state nhiều lần ở feedback kết quả giống nhau không tạo thêm bản ghi; trả lời lại 409; token sai 404; question_id sai 409; next khi chưa answer 409. pytest xanh toàn bộ (93 test).
 - [x] Bước 3: Kiểm tra PlayView với JSON thật — sửa loadState() không gán question.value = undefined ở phase feedback (khắc phục lỗi phản hồi không hiện); giữ selected_value = đáp án đã chọn ở feedback; backend _build_feedback_payload trả thêm object question để F5 ở phase feedback vẫn render; chuỗi thông báo FE có dấu ("Không lấy được trạng thái câu hỏi.", "Không nộp được đáp án.", "Không lấy câu tiếp theo.", "Câu {i} / {total}"). Xác minh: mount luôn GET state, không lưu sessionStorage, lỗi API hiện thông báo tiếng Việt + nút "Thử lại", nút "Chốt!" cố định, Enter chốt, chống bấm đúp, nhấp nháy ≤5 giây, hết giờ tự gửi đáp án đang chọn, mốc thời gian không đếm tick, giữ tab_hidden, cảnh báo rời trang, không nút quay lại, không nút "Câu tiếp".

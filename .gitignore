@@ -13,6 +13,11 @@ dist/
 backend/instance/
 backend/uploads/
 
+# E2E test database và báo cáo (temporary)
+backend/instance/e2e.db
+playwright-report/
+test-results/
+
 # Hệ điều hành / editor
 .DS_Store
 Thumbs.db
