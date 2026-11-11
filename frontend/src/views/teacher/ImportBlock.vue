@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useToast } from '@/composables/useToast'
 import { teacherApi } from '@/api/teacher'
 
-const props = defineProps(['quizId'])
+const props = defineProps(['quizId', 'locked'])
 const emit = defineEmits(['imported'])
 
 const toast = useToast()
@@ -55,11 +55,11 @@ async function onImport() {
   <div class="q-panel" style="padding:20px;margin-top:20px;">
     <h3 style="font-size:1rem;margin-bottom:12px;">Nhập câu hỏi từ Excel/CSV</h3>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-      <button class="q-btn q-btn-outline" :disabled="loading" @click="downloadTemplate">Tải file mẫu</button>
+      <button class="q-btn q-btn-outline" :disabled="loading || locked || !hasFile" @click="downloadTemplate">Tải file mẫu</button>
       <input type="file" accept=".xlsx,.csv" @change="handleFileChange" style="display:none;" ref="fileInput" />
-      <button class="q-btn q-btn-outline" :disabled="loading || !hasFile" @click="() => { const el = $refs.fileInput; if(el) el.click() }">Chọn file</button>
+      <button class="q-btn q-btn-outline" :disabled="loading || locked || !hasFile" @click="() => { const el = $refs.fileInput; if(el) el.click() }">Chọn file</button>
       <span v-if="file" style="font-size:0.85rem;color:var(--q-text-soft);">{{ file.name }}</span>
-      <button class="q-btn q-btn-primary" :disabled="loading || !hasFile" @click="onImport">
+      <button class="q-btn q-btn-primary" :disabled="loading || locked || !hasFile" @click="onImport">
         {{ loading ? 'Đang nhập...' : 'Nhập câu hỏi' }}
       </button>
     </div>

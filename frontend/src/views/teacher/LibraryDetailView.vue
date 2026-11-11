@@ -11,6 +11,8 @@ const router = useRouter()
 const route = useRoute()
 const toast = useToast()
 
+const props = defineProps(['id'])
+
 const quiz = ref(null)
 const loading = ref(false)
 const loadError = ref(null)
@@ -20,7 +22,7 @@ async function load() {
   loading.value = true
   loadError.value = null
   try {
-    const res = await teacherApi.getLibraryQuiz(route.params.id)
+    const res = await teacherApi.getLibraryQuiz(props.id)
     quiz.value = res.data
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error
@@ -41,7 +43,7 @@ function truncated(content, len = 80) {
 async function onClone() {
   cloning.value = true
   try {
-    const res = await teacherApi.cloneQuiz(route.params.id)
+    const res = await teacherApi.cloneQuiz(props.id)
     const id = res.data.quiz.id
     toast.success('Đã sao chép bộ đề.', 'Thành công')
     router.push({ name: 'teacher-quiz', params: { id } })

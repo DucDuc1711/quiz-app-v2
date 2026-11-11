@@ -11,7 +11,7 @@ import ErrorState from '@/components/ErrorState.vue'
 const router = useRouter()
 const toast = useToast()
 
-const props = defineProps(['quizId'])
+const props = defineProps(['id'])
 
 const loading = ref(false)
 const loadError = ref(null)
@@ -24,15 +24,23 @@ const sortKey = ref(null)
 const sortDir = ref('asc')
 const searchName = ref('')
 
-onMounted(load)
+const isValidId = computed(() => {
+  const n = Number(props.id)
+  return Number.isInteger(n) && n > 0
+})
 
 async function load() {
+  if (!isValidId.value) {
+    loadError.value = 'Đường dẫn không hợp lệ.'
+    loading.value = false
+    return
+  }
   loading.value = true
   loadError.value = null
   try {
     const [sRes, aRes] = await Promise.all([
-      teacherApi.getStats(props.quizId),
-      teacherApi.listAttempts(props.quizId),
+      teacherApi.getStats(props.id),
+      teacherApi.listAttempts(props.id),
     ])
     stats.value = sRes.data
     attempts.value = aRes.data
@@ -42,11 +50,12 @@ async function load() {
       ? e.response.data.error
       : 'Không tải được kết quả.'
     loadError.value = msg
-    toast.error(msg, 'Lỗi tải kết quả')
   } finally {
     loading.value = false
   }
 }
+
+onMounted(load)
 
 function truncated(content, len = 60) {
   if (!content) return ''
@@ -109,11 +118,11 @@ async function confirmDeleteAttempt() {
 
 async function exportResults(fmt) {
   try {
-    const res = await teacherApi.exportResults(props.quizId, fmt)
+    const res = await teacherApi.exportResults(props.id, fmt)
     const url = window.URL.createObjectURL(new Blob([res.data]))
     const a = document.createElement('a')
     a.href = url
-    a.download = `ket_qua_${props.quizId}.${fmt}`
+    a.download = `ket_qua_${props.id}.${fmt}`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -169,7 +178,7 @@ onMounted(() => { load() })
         <div style="display:flex;gap:10px;">
           <button class="q-btn q-btn-outline" @click="exportResults('xlsx')">Xuất Excel (.xlsx)</button>
           <button class="q-btn q-btn-outline" @click="exportResults('csv')">Xuất CSV (.csv)</button>
-          <button class="q-btn q-btn-outline" @click="router.push({ name: 'teacher-quiz', params: { id: quizId } })">Về trình soạn</button>
+          <button class="q-btn q-btn-outline" @click="router.push({ name: 'teacher-quiz', params: { id } })">Về trình soạn</button>
         </div>
       </div>
 

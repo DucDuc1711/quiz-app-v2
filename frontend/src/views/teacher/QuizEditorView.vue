@@ -17,6 +17,8 @@ const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 
+const props = defineProps(['id'])
+
 const quiz = ref(null)
 const loading = ref(false)
 const loadError = ref(null)
@@ -31,7 +33,7 @@ async function load() {
   loading.value = true
   loadError.value = null
   try {
-    const res = await teacherApi.getQuiz(route.params.id)
+    const res = await teacherApi.getQuiz(props.id)
     quiz.value = res.data
     unsavedChanges.value = false
   } catch (e) {
@@ -163,16 +165,8 @@ onBeforeUnmount(() => {
         @code-changed="onCodeChanged"
       />
 
-      <!-- Warning when attempts exist -->
-      <div v-if="isLocked()" class="q-warn-banner">
-        <strong>Cảnh báo:</strong> Bộ đề này đã có <b>{{ quiz.attempt_count }}</b> lượt làm bài,
-        không thể thêm, sửa, xóa hay đổi thứ tự câu hỏi.
-        <button class="q-btn q-btn-outline" style="margin-left:16px;font-size:0.85rem;" @click="() => deleteAttemptsDialog = true">
-          Xóa kết quả để chỉnh sửa
-        </button>
-      </div>
 
-      <div v-if="!isLocked()">
+      <div>
         <div class="q-editor-tabs">
           <button class="q-editor-tab" :class="{'q-editor-tab--active': activeTab === 'settings'}" @click="activeTab = 'settings'">Cài đặt</button>
           <button class="q-editor-tab" :class="{'q-editor-tab--active': activeTab === 'questions'}" @click="activeTab = 'questions'">Câu hỏi</button>
@@ -184,32 +178,32 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="q-editor-panel" :class="{'q-editor-panel--active': activeTab === 'questions'}">
+          <div v-if="isLocked()" class="q-warn-banner">
+            <strong>Cảnh báo:</strong> Bộ đề này đã có <b>{{ quiz.attempt_count }}</b> lượt làm bài, không thể thêm, sửa, xóa hay đổi thứ tự câu hỏi.
+            <button class="q-btn q-btn-outline" style="margin-left:16px;font-size:0.85rem;" @click="() => deleteAttemptsDialog = true">Xóa kết quả để chỉnh sửa</button>
+          </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
             <h3 style="font-size:1rem;margin:0;">Danh sách câu hỏi</h3>
-            <button class="q-btn q-btn-primary" @click="() => { editingQuestion.value = null; showQuestionForm.value = true }">+ Thêm câu hỏi</button>
+            <button class="q-btn q-btn-primary" :disabled="isLocked()" @click="() => { editingQuestion.value = null; showQuestionForm.value = true }">+ Thêm câu hỏi</button>
           </div>
           <QuestionList
             :questions="quiz.questions || []"
             :quiz-id="quiz.id"
-            :locked="false"
+            :locked="isLocked()"
             @edit="q => { editingQuestion.value = q; showQuestionForm.value = true }"
             @delete="onQuestionDeleted"
             @reorder="ids => { unsavedChanges.value = true }"
+            @failed="load"
           />
         </div>
 
         <div class="q-editor-panel" :class="{'q-editor-panel--active': activeTab === 'import'}">
-          <ImportBlock :quiz-id="quiz.id" @imported="onImported" />
+          <div v-if="isLocked()" class="q-warn-banner">
+            <strong>Cảnh báo:</strong> Bộ đề này đã có <b>{{ quiz.attempt_count }}</b> lượt làm bài, không thể nhập câu hỏi mới.
+            <button class="q-btn q-btn-outline" style="margin-left:16px;font-size:0.85rem;" @click="() => deleteAttemptsDialog = true">Xóa kết quả để chỉnh sửa</button>
+          </div>
+          <ImportBlock :quiz-id="quiz.id" :locked="isLocked()" @imported="onImported" />
         </div>
-      </div>
-
-      <div v-else style="padding:24px;">
-        <h3 style="font-size:1rem;margin-bottom:12px;">Câu hỏi (khóa do đã có lượt làm)</h3>
-        <QuestionList
-          :questions="quiz.questions || []"
-          :quiz-id="quiz.id"
-          :locked="true"
-        />
       </div>
 
       <!-- Question form modal -->
@@ -244,4 +238,20 @@ onBeforeUnmount(() => {
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.q-warn-banner {
+  background: var(--q-danger-bg);
+  border: 1px solid var(--q-danger);
+  color: var(--q-danger-text);
+  padding: 12px 16px;
+  border-radius: var(--q-radius-md);
+  margin-bottom: 14px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.q-warn-banner strong { color: var(--q-danger-text); }
+</style>

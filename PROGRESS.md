@@ -1,7 +1,7 @@
 # TIẾN ĐỘ DỰ ÁN
 
 ## Trạng thái
-- Phase đang làm: P5 xong, chờ thử tay — backend xong (93 pytest, verify_teacher.py PASS, verify_flow.py PASS), frontend P5 đã build xanh
+- Phase đang làm: P5 Đợt 4 xong — backend xong (102 pytest, verify_teacher.py PASS, verify_flow.py PASS), frontend P5 build xanh, Vitest 11 test pass
 
 (P0–P4 đã xong; chi tiết đã làm xem mục "Quyết định / thay đổi so với đặc tả" dưới đây.)
 
@@ -34,7 +34,7 @@
   - Test: test_play.py 30 pass (test_join_device_multiple_retakes mới), test_teacher.py 25 pass, test_auth.py 14 pass, test_admin.py 13 pass, test_codes.py 2, test_models.py 2, test_flow_p3.py (4), test_p3_fixes.py (2), test_uploads.py (7) = 99 test
   - verify_teacher.py PASS, verify_flow.py PASS
 - [x] Chặng C1 (mục 7): Vitest — 8 file test (axios.test.js, useToast.test.js, auth.test.js, routerGuard.test.js, LoginView.test.js, RegisterView.test.js, DashboardView.test.js, PasswordField.test.js), 29 test pass; npx vitest run --reporter=dot PASS; npm run build PASS; pytest PASS; verify_flow.py PASS; verify_teacher.py PASS; node scripts/check_vietnamese.mjs PASS
-## Chàng C2 (mục 8-9): Playwright e2e — BLOCKED
+## Chặng C2 (mục 8-9): Playwright e2e — BỎ (chạy tay)
 
 ### Nguyên nhân chặn:
 - Google Chrome KHÔNG được cài trên máy (đã kiểm tra C:\Program Files\Google\Chrome, C:\Program Files (x86)\Google\Chrome, C:\Users\nuyan\AppData\Local\Google\Chrome — không tìm thấy chrome.exe).
@@ -100,109 +100,96 @@
 - E2E dùng DB riêng backend/instance/e2e.db, cổng backend 5100, frontend 5273, không đụng quiz.db thật.
 
 ## Checklist
-- [x] P0–P4: đã xong (xem mục "Quyết định / thay đổi so với đặc tả")
-- [x] P5 lượt 2 Chặng A (mục 1-4): sửa lỗi giao diện — PASS
-- [x] P5 lượt 2 Chặng B (mục 5-6): bỏ allow_retake, làm lại không giới hạn, xếp hạng lượt tốt nhất — PASS
-- [x] P5 lượt 2 Chặng C1 (mục 7): Vitest 29 test pass — PASS
-- [ ] P5 lượt 2 Chặng C2 (mục 8-9): Playwright e2e — ĐÃ CẤU HÌNH, CHƯA CHẠY ĐƯỢC (Chromium không cài được do mạng)
-- [ ] P6: admin — KHÔNG làm trong P5o cáo, commit
-- [x] Bước 1: Sửa lỗi gốc backend (play.py): state() đọc attempt.phase, trả feedback khi phase == "feedback"; tự ghi "không trả lời" nếu quá hạn chưa answer; answer() nhận khi phase còn "question", quá hạn vẫn chấm, mảng rỗng hợp lệ, validate choice_ids là list và thuộc câu hỏi, 409 khi trả lời lại; lỗi cú pháp error_response chuẩn 2 tham số; _get_attempt_or_404 trả 2 phần tử; db.session.get thay Question.query.get; chuỗi tiếng Việt có dấu đầy đủ.
-- [x] Bước 2: Test backend (pytest, DB :memory:) — thêm/sửa test: mảng rỗng 200 is_correct false; thiếu trường 400; choice_ids không phải list 400; chọn id không thuộc câu hỏi 400; gửi đúng hạn; gửi quá hạn chọn đúng (timed_out true và is_correct true) và chọn sai; state sau answer trả phase feedback (câu giữa, câu cuối, answer rỗng); gọi state nhiều lần ở feedback kết quả giống nhau không tạo thêm bản ghi; trả lời lại 409; token sai 404; question_id sai 409; next khi chưa answer 409. pytest xanh toàn bộ (93 test).
-- [x] Bước 3: Kiểm tra PlayView với JSON thật — sửa loadState() không gán question.value = undefined ở phase feedback (khắc phục lỗi phản hồi không hiện); giữ selected_value = đáp án đã chọn ở feedback; backend _build_feedback_payload trả thêm object question để F5 ở phase feedback vẫn render; chuỗi thông báo FE có dấu ("Không lấy được trạng thái câu hỏi.", "Không nộp được đáp án.", "Không lấy câu tiếp theo.", "Câu {i} / {total}"). Xác minh: mount luôn GET state, không lưu sessionStorage, lỗi API hiện thông báo tiếng Việt + nút "Thử lại", nút "Chốt!" cố định, Enter chốt, chống bấm đúp, nhấp nháy ≤5 giây, hết giờ tự gửi đáp án đang chọn, mốc thời gian không đếm tick, giữ tab_hidden, cảnh báo rời trang, không nút quay lại, không nút "Câu tiếp".
-- [x] Bước 4: Theme và thẻ đáp án — theme.css: --q-success #15803D, --q-danger #B91C1C (xóa #16A34A, #DC2626); thêm --q-success-dark/#14532D, --q-danger-dark/#7F1D1D để chữ trắng trên nền đậm đạt ≥4,5:1; LETTER_COLORS A (#7C3AED), E (#0369A1) đổi sắc đậm hơn; OptionCard.vue dùng biến CSS, chữ trắng, 4 trạng thái phản hồi (correct/wrong/skipped/idle), hết giờ không chọn chỉ hiện "Bỏ sót"; prefers-reduced-motion bỏ hiệu ứng còn giữ màu/viền/biểu tượng; CountdownRing đồng hồ báo thức SVG, số giây làm tròn lên, deadline tính từ seconds_left, thanh chạy tuyến tính, ≤5 giây đỏ + rung nhẹ, resync khi quay lại tab.
-- [x] Bước 5: Script kiểm tra tự động — chuyển backend/verify_flow.py sang backend/scripts/verify_flow.py (chạy `python scripts/verify_flow.py` từ thư mục backend, thêm sys.path để import app, extensions, models), test client với DB :memory: (TestingConfig), hàm check(cond, msg, data=None) in PASS/FAIL kèm JSON khi FAIL, chạy hết rồi thoát mã khác 0 nếu có FAIL; bộ đề 3 câu gồm single, multiple, true_false; các ca: join; state question; answer có chọn; state NGAY SAU answer phải là feedback; gọi state lại nhiều lần ở phase feedback; next; answer mảng rỗng; state feedback; câu giữa và câu cuối; next đến hết; result (score đúng); state sau khi hoàn thành; quá hạn (sửa question_started_at trong DB) cho cả ca có chọn đúng và ca không chọn; thông báo lỗi 400/409/404 phải có dấu. Kết quả chạy script: 12/12 PASS.
-- [x] Bước 6: Dọn file và git — xóa backend/pytest_out.txt, backend/r1.txt, backend/r2.txt, backend/verify_flow.py (đã chuyển sang scripts/), frontend/write_play_a.py, các script đọc tạm; xóa 65 file test rác trong backend/app/uploads/, thêm .gitkeep; .gitignore bổ sung backend/app/uploads/* (trừ .gitkeep) và *.txt; test_uploads.py dùng fixture tmp_path (monkeypatch UPLOAD_FOLDER) để không ghi vào thư mục thật.
-- [x] Bước 7: Xác nhận config.py đã chuyển — không còn import kiểu cũ `from config import ...` ở run.py, app/__init__.py, conftest.py, migrations/env.py; .env vẫn được đọc qua load_dotenv(); đường dẫn DB backend/app/instance/quiz.db không lệch (không sinh quiz.db mới ở chỗ khác); chạy được pytest, flask db upgrade, python run.py (import app OK).
-- [x] Bước 8: Ghi đè PROGRESS.md (đã hoàn thành).
-- [ ] Bước 9: Kiểm tra cuối (pytest xanh, npm run build OK, verify_flow.py toàn PASS) rồi git commit.
+- [x] P0 Tài liệu đặc tả
+- [x] P1 Backend nền tảng (models, auth, CLI, seed)
+- [x] P2 Backend luồng làm bài (play, uploads)
+- [x] P3 Backend giáo viên và admin (CRUD, thư viện, import/export)
+- [x] P4 Frontend nền và phần học sinh (tick sau khi đợt 2 xong và thử tay đủ kịch bản)
+- [x] P5 Frontend giáo viên
+- [ ] P6 Frontend admin
+- [ ] P7 Hoàn thiện (giao diện, điện thoại, kiểm thử, README)
 
-## Đã làm ở P5
-- 1. Hạ tầng giáo viên: api/teacher.js, store auth (khóa riêng quiz_teacher_token/quiz_teacher_user), axios Bearer + xử lý 401, router guard /teacher/*, composable useToast + ToastHost, ConfirmDialog/LoadingState/EmptyState/ErrorState, layout thanh trên.
-- 2. Đăng ký/đăng nhập (/teacher/register, /teacher/login): validation spec, hiện/ẩn mật khẩu, lỗi từng ô, từ chối admin.
-- 3. Dashboard (/teacher): thẻ bộ đề (mã in đậm, số câu, lượt làm, mở/đóng, công khai/riêng, ngày cập nhật), hành động Soạn/Kết quả/Nhân bản/Xóa, công tắc is_open, tìm kiếm, tạo mới.
-- 4. Trình soạn bộ đề (/teacher/quizzes/:id): cài đặt, mã tham gia + sao chép link/QR/chiếu lên bảng, câu hỏi (3 loại, true_false cố định Đúng/Sai, không ô giải thích, ảnh upload), nhập Excel/CSV, cảnh báo & khóa khi có lượt làm, xóa kết quả để mở khóa, ErrorState 404.
-- 5. Kết quả (/teacher/quizzes/:id/results): thẻ thống kê, tỉ lệ sai thanh CSS, bảng lượt làm sắp xếp/tìm/xóa, xuất Excel/CSV.
-- 6. Thư viện (/teacher/library, /teacher/library/:id): tìm debounce, lọc thẻ, phân trang, chi tiết đánh dấu đáp án đúng, clone.
-- 7. Chất lượng: loading/rỗng/lỗi, xác nhận xóa, nút ≥44px, responsive 360px, biến theme.css, không v-html, thông báo có dấu.
-
-## Quyết định / thay đổi so với đặc tả
-- Desktop-first 1280px, responsive 768px và 360px.
-- Mọi câu học sinh bấm một nút "Chốt!" cố định (không có nút "Câu tiếp"); chạm thẻ chỉ chọn, không gửi; Enter chốt đáp án; chống bấm đúp qua cờ answering.
-- Tự chuyển câu sau 5 giây (8 giây nếu explanation sau trim không rỗng); hết giờ (≤5 giây) đồng hồ đỏ #B91C1C và rung nhẹ, tự gửi đáp án đang chọn (mảng rỗng nếu chưa chọn) và vẫn chấm (timed_out = true, is_correct theo lựa chọn).
-- Không ân hạn: server nhận answer khi phase còn "question" kể cả đã quá limit; quá hạn thì timed_out = true nhưng vẫn chấm lựa chọn đã chọn; time_taken = min(elapsed, limit).
-- state() đọc attempt.phase: nếu phase == "feedback" trả feedback ngay (không trả lại câu hỏi); nếu phase == "question" và đã quá hạn chưa answer thì tự ghi "không trả lời", chuyển phase = "feedback", trả feedback.
-- Cấu trúc backend thực tế: extensions.py, models.py, utils.py, cli.py ở backend/ root; config.py ở backend/app/.
-- Uploads không đưa vào git (.gitignore: backend/app/uploads/* trừ .gitkeep); test dùng tmp_path.
-- Màu: đúng #15803D (xanh lá), sai #B91C1C (đỏ); đã xóa #16A34A, #DC2626.
-- P5: token giáo viên lưu localStorage khóa riêng (quiz_teacher_token / quiz_teacher_user) để không đè admin của P6.
-- P5: đổi thứ tự câu hỏi bằng nút Lên/Xuống (PUT .../questions/order {ids}), không kéo thả.
-- P5: biểu đồ tỉ lệ sai từng câu dùng thanh ngang CSS thuần, không thêm thư viện biểu đồ.
-- P5: xóa kết quả dùng ConfirmDialog thường nêu rõ số lượt làm sẽ mất và không hoàn tác được; backend trả 409 thì hiện toast và tải lại.
-- P5: bỏ ô giải thích khỏi form câu hỏi (theo spec mới).
-- P5: open_at/close_at backend trả ISO (isoformat, có thể có múi giờ +00:00); frontend chuyển sang datetime-local theo múi giờ local và ngược lại.
-- P5: trường backend đã thêm: question_count, attempt_count, is_open, is_public, updated_at (GET danh sách quizzes); correct_answers, time_spent, tab_switch_count (attempts); max_score, min_score (stats); is_correct (chi tiết library); PUT quizzes nhận thêm question_time, shuffle flags, is_open, open_at, close_at, tags.
-
-
-## Quyết định P5 (fix đăng ký/đăng nhập)
-- Username và email không phân biệt hoa thường: lưu chữ thường, tìm bằng func.lower(User.username/email) trong auth.py; dùng normalize_username/normalize_email/normalize_login_value trong utils.py cho mọi nơi (register, login, admin_login, cli create-admin/seed).
-- Mật khẩu phân biệt hoa thường và giữ nguyên văn: không strip, không lower, so sánh bằng check_password_hash nguyên văn.
-- Ô mã bộ đề học sinh là ô duy nhất được ép chữ hoa (HomeView.vue JS toUpperCase); mọi ô username/email/mật khẩu bỏ ép chữ hoa, dùng autocapitalize/autocorrect/spellcheck/autocomplete phù hợp.
-- P5: có Vitest (8 file test, 29 test) cho axios interceptor, useToast, auth store, router guard, LoginView, RegisterView, DashboardView, PasswordField.
-
-## Thiết kế giao diện (P4)
-- Đồng hồ báo thức: SVG đồng hồ, số giây làm tròn lên ở giữa, thanh chạy tuyến tính bằng requestAnimationFrame/CSS animation, deadline tính từ lúc nhận seconds_left (không cộng dồn tick).
-- Nút "Chốt!" cố định cho mọi câu; chạm thẻ không gửi; Enter chốt; chống bấm đúp; nhấp nháy ≤5 giây; không nút "Câu tiếp"; đồng hồ về 0 tự gửi đáp án đang chọn; dùng mốc thời gian không đếm tick; giữ tab_hidden; cảnh báo rời trang; không nút quay lại.
-- Màu đúng #15803D, sai #B91C1C; chữ trắng trên nền đậm đạt tương phản ≥4,5:1 (6 chữ A–F đã kiểm tra, đổi sắc đậm nếu thiếu); 4 trạng thái phản hồi (đúng/sai/bỏ sót/bình thường); hết giờ không chọn gì chỉ hiện đáp án đúng kiểu "Bỏ sót", không thẻ đỏ; prefers-reduced-motion bỏ phóng to/nảy/rung/nhấp nháy nhưng giữ màu, viền, biểu tượng.
-- Tất cả biến/style tập trung trong frontend/src/assets/theme.css.
+## Đang làm dở: P4 đợt 2
+Việc cần làm (tick dần khi xong):
+- [ ] Backend: xóa hẳn trường explanation (models, migration xóa cột, play, teacher, importer, exporter, file mẫu nhập, seed, test).
+- [ ] Backend: thêm cột Attempt.feedback_started_at (migration); hằng FEEDBACK_SECONDS = 3; answer và state ở phase feedback trả feedback_seconds_left; next không chặn gọi sớm.
+- [ ] Backend: answer trả 400 khi câu single/true_false gửi nhiều hơn 1 choice_id; thêm test.
+- [ ] Frontend: xóa chữ giờ thừa giữa các thẻ đáp án; vòng tím là đồng hồ duy nhất (bỏ biểu tượng báo thức, số giây ở giữa, vòng cạn tuyến tính đồng bộ số, ẩn ở phase phản hồi).
+- [ ] Frontend: câu single/true_false chỉ chọn được 1 thẻ (chọn thẻ mới thay thẻ cũ).
+- [ ] Frontend: màu thẻ phản hồi nền nhạt, chữ đậm, viền #15803D / #B91C1C, bỏ màu -dark tô cả thẻ.
+- [ ] Frontend: tự chuyển câu sau 3 giây dựa trên feedback_seconds_left; tái hiện và xác minh lỗi "đếm về 0 mà không tự chuyển" (nghi cờ chống bấm đúp bị kẹt) rồi sửa; F5 hoặc nhập lại mã ở phase phản hồi tiếp tục đúng số giây còn lại.
+- [ ] Cập nhật verify_flow.py và pytest; chạy lại toàn bộ, build, commit.
 
 ## Lỗi đã biết
-- Không có lỗi nghiêm trọng còn tồn tại sau khi sửa build (template Invalid end tag, chuỗi message thoát dấu nháy, debounce không export từ Vue đã khôi phục).
-- P5 (đã sửa):
-  * Ép chữ hoa toàn bộ ô nhập do CSS text-transform: uppercase trên .q-form-control trong theme.css (chỉ đổi hiển thị, không đổi giá trị gửi đi). Ô mã bộ đề học sinh giữ viết hoa bằng JS ở HomeView.vue (ô duy nhất được phép ép).
-  * Báo "Đăng ký thất bại" giả dù backend đã tạo thành công: try/catch trong RegisterView/LoginView bao trộn lệnh gọi API lẫn bước sau (setAuth, toast, router.push), lỗi phía sau bị nuốt và hiện câu dự phòng. Sửa bằng tách try/catch.
-  * Đăng nhập không phân biệt hoa thường: auth.py trước đây so sánh User.username == username_or_email (phân biệt). Sửa bằng func.lower(User.username) == giá trị đã lower OR func.lower(User.email) == giá trị đã lower, cùng normalize_login_value (strip + lower). Chuỗi thông báo backend không dấu → đã sửa thành có dấu.
-- P5 lần 2 (đã sửa):
-  * Toast: 14 chỗ viết const { toast } = useToast() trong khi composable trả { toasts, success, error, remove } → sửa thành const { toasts, success, error, remove } = useToast() và dùng toast.toasts.value trong test.
-  * Thiếu Authorization: api/teacher.js tạo axios.create riêng không có interceptor → sửa dùng shared axios instance (@/api/axios) đã có interceptor gắn Bearer quiz_teacher_token cho /api/teacher/* (trừ /api/auth/* và /api/play/*), và xóa phiên + dispatch 'auth-logout' khi 401 trên endpoint không phải login.
-  * JWT trả tiếng Anh → sửa tất cả JWT callbacks trong backend/app/__init__.py sang tiếng Việt có dấu.
-  * Chuỗi không dấu trong ErrorState/LoadingState/ResultView/ToastHost → đã sửa sang có dấu đầy đủ.
-  * Nút Hiện/Ẩn PasswordField: aria-label tiếng Việt ('Hiện mật khẩu' / 'Ẩn mật khẩu'), đổi type của ô input giữa 'password' và 'text'.
+- Lỗi fixture test ghi đè/xóa DB thật (đã sửa): create_app() gọi db.init_app trước khi test gán URI :memory:, nên engine đã tạo và db.drop_all() xóa DB thật. Cách sửa: create_app nhận config object (TestingConfig, URI :memory:) áp dụng trước db.init_app; conftest.py assert URI bắt đầu bằng sqlite:///:memory: trước mọi thao tác DB.
+- Lỗi P4 đợt 1 (đã sửa):
+  1. Sau khi chốt, state vẫn trả câu hỏi, không hiện phản hồi; F5 và nhập lại mã bị kẹt. Nguyên nhân: state() không đọc attempt.phase. Cách sửa: state() trả feedback khi phase == "feedback".
+  2. Panel phản hồi bị ẩn. Nguyên nhân: PlayView.loadState() gán question.value = undefined ở phase feedback nên v-if="question" ẩn panel. Cách sửa: chỉ gán question khi phase là question; state ở feedback trả kèm object question.
+  3. Nhánh lỗi API trả 500. Nguyên nhân: error_response thiếu tham số status hoặc đặt status ngoài ngoặc. Cách sửa: luôn error_response("...", status); _get_attempt_or_404 trả (attempt, None) hoặc (None, error_response(...)).
+  4. Thông báo thiếu dấu hoặc sai dấu. Cách sửa: viết lại toàn bộ chuỗi tiếng Việt có dấu.
+- Lỗi mới thấy khi thử tay (đang sửa ở đợt 2):
+  1. Chữ giờ thừa ("0:24") hiện lòi giữa các thẻ đáp án; vòng đồng hồ có biểu tượng đè lên số.
+  2. Câu 1 đáp án chọn được 2 thẻ.
+  3. Chữ trên thẻ đúng/sai gần như không đọc được (nền #14532D, #7F1D1D quá đậm, chữ tối màu).
+  4. Phase phản hồi không tự chuyển câu khi chưa F5 (thanh về 0s mà đứng yên); F5 xong lại phải đợi đủ thời gian. Nguyên nhân: chưa xác định, Cline xác minh rồi ghi vào đây. Nghi cờ chống bấm đúp kẹt và server không lưu thời điểm bắt đầu phản hồi.
+- Cần kiểm tra: đường dẫn DB (báo cáo ghi backend/app/instance/quiz.db, trước đó là backend/instance/quiz.db). Nếu có hai file quiz.db thì dữ liệu cũ nằm ở file kia.
 
-## Đề xuất sửa spec
-- GET /api/teacher/library/:id cần trả choices kèm is_correct để giao diện thư viện chi tiết đánh dấu đáp án đúng (đã bổ sung vào backend và cập nhật test, pytest vẫn xanh, không đổi tên trường cũ).
+## Quyết định / thay đổi so với đặc tả
+- Desktop-first 1280px, responsive xuống 768px và 360px.
+- Route teacher chỉ nhận role teacher, route admin chỉ nhận role admin (kiểm tra DB mỗi request); admin gọi /api/teacher/* trả 403.
+- Thư viện trả {quizzes, page, per_page, total}, per_page mặc định 12.
+- Xuất kết quả dùng tiêu đề tiếng Việt theo spec mục 6; cột Trạng thái là "Đã nộp" hoặc "Đang làm".
+- Cấu trúc thực tế: extensions.py, models.py, utils.py, cli.py ở backend/ root; config.py ở backend/app/. Terminal dùng Windows CMD. DATABASE_URL trong .env là đường dẫn tuyệt đối (đường dẫn Windows có khoảng trắng).
+- Test: fixture app và client nằm trong tests/conftest.py, dùng TestingConfig (:memory:). Uploads không đưa vào git (.gitignore: backend/app/uploads/* trừ .gitkeep); test dùng tmp_path.
+- Luồng làm bài: một nút "Chốt!" cố định cho mọi câu; chạm thẻ chỉ chọn, không gửi; Enter chốt; chống bấm đúp.
+- Không có ân hạn: server nhận answer khi phase còn question; quá hạn thì timed_out = true nhưng vẫn chấm lựa chọn đã chọn; time_taken = min(elapsed, limit); mảng rỗng hợp lệ (tính sai).
+- state() đọc attempt.phase; quá hạn chưa answer thì tự ghi "không trả lời" và chuyển feedback.
+- Đợt 2 (chốt với chủ dự án):
+  - Bỏ hẳn tính năng giải thích (xóa cột explanation).
+  - Mọi câu, kể cả câu cuối, tự chuyển sau 3 giây.
+  - Server lưu feedback_started_at và trả feedback_seconds_left; F5 hoặc nhập lại mã tiếp tục đúng chỗ. Server không chặn next gọi sớm.
+  - Câu single/true_false: giao diện chỉ giữ 1 thẻ, server trả 400 nếu gửi quá 1 id.
+  - Đồng hồ: bỏ biểu tượng báo thức; vòng tím cạn dần đồng bộ với số giây ở giữa; ẩn ở phase phản hồi; ≤5 giây đỏ #B91C1C và rung nhẹ.
+  - Thẻ phản hồi nền nhạt, chữ đậm; màu đậm chỉ dùng cho viền và biểu tượng.
+  - Không đụng dữ liệu seed (DB chỉ để test, nội dung seed hiện không dấu).
+  - Dòng ghi chú: chủ dự án tự sửa PROJECT_SPEC.md và PROGRESS.md; Cline không được sửa hai file này.
 
 ## Việc để lại cho P7
 - Cân nhắc dời thư mục uploads ra backend/uploads hoặc instance/uploads.
+- Chuyển nội dung seed sang tiếng Việt có dấu.
 - Hoàn thiện coverage cho toàn bộ API endpoints.
 - Giao diện điện thoại, README.
 
 ## Cách chạy
-Backend (terminal 1):
-- Kích hoạt venv: .venv\Scripts\activate
-- Khởi tạo DB: flask db upgrade
-- Tạo admin: flask create-admin (đọc ADMIN_* từ .env)
-- Seed dữ liệu mẫu: flask seed-samples (yêu cầu đã có admin)
+Backend (terminal 1, Windows CMD):
+- cd /d backend, rồi kích hoạt venv: .venv\Scripts\activate
+- Lần đầu: flask db upgrade, flask create-admin (đọc ADMIN_* từ .env), flask seed-samples (cần đã có admin)
 - Chạy server: python run.py (cổng 5000)
 
-Frontend (terminal 2, chạy song song với backend):
+Frontend (terminal 2):
 - cd /d frontend
-- Cài đặt (lần đầu): npm install
-- Chạy dev: npm run dev (mặc định cổng 5173, vite proxy /api sang http://127.0.0.1:5000)
+- Lần đầu: npm install
+- Chạy dev: npm run dev (cổng 5173, proxy /api sang http://127.0.0.1:5000)
 - Truy cập: http://127.0.0.1:5173
 
-Chạy kiểm tra frontend: npm test (Vitest, 29 test) và npm run build.
+Kiểm tra (từ thư mục backend): pytest, và python scripts/verify_flow.py (kỳ vọng toàn PASS, thoát mã 0). Frontend: npm run build.
 
-Chạy kiểm tra backend: pytest (toàn bộ 93 test, DB :memory:) và python scripts/verify_teacher.py (kiểm tra API giáo viên P5, toàn PASS, thoát mã 0).
+Mẹo thử tay:
+- Làm lại cùng máy: dùng cửa sổ ẩn danh, hoặc F12 Console gõ localStorage.clear() rồi tải lại trang.
+- Lấy mã bộ đề: xem access_code trong trang giáo viên (từ P5), hoặc in từ DB: python -c "from app import create_app; from models import Quiz; app=create_app(); app.app_context().push(); print([(q.title, q.access_code) for q in Quiz.query.all()])"
 
-Kiểm tra tiếng Việt: node scripts/check_vietnamese.mjs (PASS = không chuỗi tiếng Việt không dấu trong src/app).
+## Đợt 4 (P5 fix 4: modal, navbar, route param, seed co dau, khoa chinh sua)
 
-Mẹo test làm lại cùng máy: nên dùng một địa chỉ cố định (localhost hoặc 127.0.0.1) vì mỗi địa chỉ có localStorage riêng. Có thể xóa hai khóa rác access_token, user trong localStorage (F12 Console gõ `localStorage.removeItem('access_token'); localStorage.removeItem('user')`) rồi tải lại trang để bắt đầu lượt làm mới.
+Nguyen goc tung loi va file sua:
+1. Modal Tao bo de (DashboardView): overlay @click (khong .self) => cham vao o nhap dong dong hop; dialog khong fixed/cuot/z-index. Sua: DashboardView.vue (@click.self, focus o tieu de, Enter tao, Esc/Huy dong); ConfirmDialog.vue (component goc: fixed, max-height 85vh, overflow-y, z-index 3000/3001, phim Esc) ap dung chung tat ca modal.
+2. Thanh tren: isTeacherZone && auth.isAuthenticated => an lien ket giao vien khi khong o /teacher. Sua: App.vue (isTeacher = auth.isAuthenticated && auth.isTeacher), hien o moi trang khi da dang nhap.
+3. Trang Ket qua API undefined: route khai bao :id nhung ResultsView doc props.quizId (khong khong ten). Sua: ResultsView.vue prop id; guard isValidId (so > 0) khong goi API, hien ErrorState "Duong khong hop le"; chi onMounted(load) goi 1 lan (bo toast trung, chi ErrorState).
+4. Seed khong dau, thieu --reset: backend/cli.py chuoi seed khong dau. Sua: toan bo tieu de/mo the/the/ cau hoi/dap an tieng Viet co dau; them tu chon --reset xoa tat ca bo de cua admin, dat source_quiz_id = NULL cho ban sao giao vien, seed lai; khong --reset khong nhan dopp.
+5. "· cau hoi" thieu so: get_quiz khong tra question_count/attempt_count. Sua: teacher.py tra 2 truong; QuizEditorView.vue dung attempt_count de khoa, hien canh bao o tab Cau hoi va Nhap Excel/CSV, vo hieu hoa nut, co nut "Xoa ket qua de chinh sua"; 409 => toast tieng Viet + reload; cai dat van sua duoc.
+6. Giao dien nho: logo Q cach xa (margin-right 8px -> 2px) theme.css; footer bo "chay local"; HomeView.vue cau thong bao + tach 2 nut + nut Tham gia cho kiem tra; Dashboard 4 nut gọn 3 breakpoint.
 
-Cách lấy mã bộ đề: xem access_code trong trang giáo viên hoặc dùng bộ đề seed (mã trong database/seeder).
+Kiem tra: pytest 102 pass; npm test (Vitest) 11 pass; npm run build xanh; node scripts/check_vietnamese.mjs PASS; npm run lint:conv (check_conventions) PASS; verify_flow.py PASS; verify_teacher.py PASS; flask seed-samples --reset tren DB that -> 2 bo co dau, khong nhan dopp.
 
-## Checklist
-- [x] P0–P4: đã xong (xem mục "Quyết định / thay đổi so với đặc tả")
-- [x] P5: frontend giáo viên — build xanh, pytest 93 passed, verify_teacher.py PASS, verify_flow.py PASS (chờ thử tay)
-- [ ] P6: admin — KHÔNG làm trong P5
-
-
+P6 (giao dien admin): HOAN (chu du an tu lam, khong duoc trong P5).
+e2e Playwright: BO (chay tay, khong chay).
+Spec phan hoi 3 giay: nguoi dung xac nhan on.

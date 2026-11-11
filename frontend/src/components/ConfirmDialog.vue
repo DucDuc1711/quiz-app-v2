@@ -1,35 +1,48 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
-  title: { type: String, default: 'Xac nhan thao tac' },
+  title: { type: String, default: 'Xác nhận thao tác' },
   message: { type: String, required: true },
-  confirmLabel: { type: String, default: 'Xac nhan' },
-  cancelLabel: { type: String, default: 'Huy' },
+  confirmLabel: { type: String, default: 'Xác nhận' },
+  cancelLabel: { type: String, default: 'Hủy' },
   confirmVariant: { type: String, default: 'danger' }, // 'danger' | 'primary'
   visible: { type: Boolean, default: true },
   loading: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['confirm', 'cancel'])
-
-const ok = ref(false)
+const emit = defineEmits(['confirm', 'cancel', 'update:visible'])
 
 function onConfirm() {
-  ok.value = true
   emit('confirm')
 }
 function onCancel() {
   emit('cancel')
+  emit('update:visible', false)
 }
 function onClose() {
+  // Chỉ đóng khi nhấp đúng vào lớp nền (không nhấp vào nội dung hộp thoại)
   emit('cancel')
+  emit('update:visible', false)
 }
+
+function onKeyDown(e) {
+  if (e.key === 'Escape') {
+    onClose()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', onKeyDown)
+})
+onUnmounted(() => {
+  document.removeEventListener('keydown', onKeyDown)
+})
 </script>
 
 <template>
   <teleport to="body">
-    <div v-if="props.visible" class="q-dialog-overlay" @click="onClose"></div>
+    <div v-if="props.visible" class="q-dialog-overlay" @click.self="onClose"></div>
     <div v-if="props.visible" class="q-dialog" role="dialog" aria-modal="true" aria-label="{{ props.title }}">
       <div class="q-dialog-card">
         <div class="q-dialog-title">{{ props.title }}</div>
@@ -41,7 +54,7 @@ function onClose() {
             @click="onConfirm"
             :disabled="props.loading"
           >
-            {{ props.loading ? 'Dang xu ly...' : props.confirmLabel }}
+            {{ props.loading ? 'Đang xử lý...' : props.confirmLabel }}
           </button>
         </div>
       </div>
@@ -62,8 +75,11 @@ function onClose() {
   animation: q-fade-in 0.2s ease;
 }
 .q-dialog {
+  position: relative;
   width: 90%;
   max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
   z-index: 3001;
   animation: q-dialog-zoom 0.25s ease;
 }

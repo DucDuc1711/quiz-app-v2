@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
@@ -19,10 +19,51 @@ const loadError = ref(null)
 const search = ref('')
 const showCreateModal = ref(false)
 const newTitle = ref('')
+const titleInput = ref(null)
 const deleteDialog = ref(false)
 const deleteTarget = ref(null)
 const saving = ref(false)
 const toggleOpen = ref(null)
+
+let createModalKeydown = null
+
+function openCreateModal() {
+  showCreateModal.value = true
+  nextTick(() => {
+    if (titleInput.value) titleInput.value.focus()
+  })
+}
+
+function closeCreateModal() {
+  showCreateModal.value = false
+  newTitle.value = ''
+  if (createModalKeydown) {
+    document.removeEventListener('keydown', createModalKeydown)
+    createModalKeydown = null
+  }
+}
+
+watch(showCreateModal, (isOpen) => {
+  if (isOpen) {
+    createModalKeydown = (e) => { if (e.key === 'Escape') closeCreateModal() }
+    document.addEventListener('keydown', createModalKeydown)
+    nextTick(() => {
+      if (titleInput.value) titleInput.value.focus()
+    })
+  } else {
+    if (createModalKeydown) {
+      document.removeEventListener('keydown', createModalKeydown)
+      createModalKeydown = null
+    }
+  }
+})
+
+onUnmounted(() => {
+  if (createModalKeydown) {
+    document.removeEventListener('keydown', createModalKeydown)
+    createModalKeydown = null
+  }
+})
 
 const deleteMessage = computed(() => {
   const q = deleteTarget.value
@@ -154,7 +195,7 @@ onMounted(() => { load() })
           :message="search.trim() ? 'Không tìm thấy bộ đề nào phù hợp.' : 'Chưa có bộ đề nào.'"
           :hint="emptyHint"
         />
-        <button class="q-btn q-btn-primary" @click="showCreateModal = true" style="margin-top:24px;">Tạo bộ đề mới</button>
+        <button class="q-btn q-btn-primary" @click="openCreateModal" style="margin-top:24px;">Tạo bộ đề mới</button>
       </div>
 
       <div v-else class="q-quiz-grid">
@@ -191,13 +232,14 @@ onMounted(() => { load() })
       />
     </div>
 
-    <div v-if="showCreateModal" class="q-dialog-overlay" @click="showCreateModal = false"></div>
+    <div v-if="showCreateModal" class="q-dialog-overlay" @click.self="closeCreateModal"></div>
     <div v-if="showCreateModal" class="q-dialog" role="dialog" aria-modal="true" aria-label="Tạo bộ đề mới">
       <div class="q-dialog-card">
         <div class="q-dialog-title">Tạo bộ đề mới</div>
         <div class="q-dialog-message">Nhập tiêu đề bộ đề (bắt buộc).</div>
         <div class="q-dialog-actions" style="margin-top:0;">
           <input
+            ref="titleInput"
             class="q-field-control"
             v-model="newTitle"
             placeholder="Tiêu đề bộ đề"
@@ -206,7 +248,7 @@ onMounted(() => { load() })
           <button class="q-btn q-btn-primary" :disabled="saving || !newTitle.trim()" @click="onCreate">
             {{ saving ? 'Đang tạo...' : 'Tạo' }}
           </button>
-          <button class="q-btn q-btn-outline" @click="showCreateModal = false">Hủy</button>
+          <button class="q-btn q-btn-outline" @click="closeCreateModal">Hủy</button>
         </div>
       </div>
     </div>
@@ -220,6 +262,7 @@ onMounted(() => { load() })
 }
 .q-dialog {
   width: 90%; max-width: 480px; z-index: 3001;
+  position: relative; max-height: 85vh; overflow-y: auto;
 }
 .q-dialog-card {
   background: var(--q-card); border: 1px solid var(--q-border);

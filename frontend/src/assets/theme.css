@@ -251,3 +251,17 @@ a:hover { text-decoration: underline; }
 }
 .q-password-toggle:hover:not(:disabled) { background: var(--q-border); }
 .q-password-toggle:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Logo thanh trên: ô Q gộp liền với "uiz App" (khoảng cách ≤2px) -> đọc là "Quiz App" */
+.q-brand .q-mark { margin-right: 2px; }
+@media (max-width: 360px) { .q-brand .q-mark { margin-right: 2px; } }
+@media (min-width: 1280px) { .q-brand .q-mark { margin-right: 2px; } }
+
+/* Home: tách hai nút "Kiểm tra mã" / "Tham gia bộ đề" rõ nét */
+.q-btn-join { margin-left: 10px; }
+
+/* Dashboard: 4 nút hành động gọn trong thẻ ở mọi breakpoint */
+.q-quiz-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; margin-top: 16px; }
+.q-quiz-actions .q-btn { min-width: auto; flex: 1 1 48%; min-height: 40px; padding: 0 8px; font-size: 0.85rem; }
+@media (max-width: 768px) { .q-quiz-actions .q-btn { flex: 1 1 48%; } }
+@media (max-width: 360px) { .q-quiz-actions .q-btn { flex: 1 1 48%; font-size: 0.8rem; } }

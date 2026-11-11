@@ -99,7 +99,7 @@ async function onJoin() {
             <circle cx="126" cy="102" r="5" fill="#2563EB" />
           </svg>
         </div>
-        <p class="q-ill-caption">Chuẩn bị sẵn sàng? Hãy nhập mã và vào cuối chương trình!</p>
+        <p class="q-ill-caption">Sẵn sàng chưa? Nhập mã và bắt đầu thôi!</p>
       </div>
       <div class="q-home-right q-panel q-pad">
         <h3 class="q-form-title">Tham gia bộ đề</h3>
@@ -112,7 +112,7 @@ async function onJoin() {
           <input class="q-form-control" v-model="name" maxlength="40" placeholder="Tên của bạn" />
         </div>
         <button class="q-btn q-btn-primary q-btn-full mt-2" @click="onLookup" :disabled="loading">Kiểm tra mã</button>
-        <button class="q-btn q-btn-outline q-btn-full mt-3" @click="onJoin" :disabled="loading || !quiz">Tham gia bộ đề</button>
+        <button class="q-btn q-btn-outline q-btn-full mt-3 q-btn-join" @click="onJoin" :disabled="loading || !quiz">Tham gia bộ đề</button>
         <div v-if="error" class="q-error">{{ error }}</div>
         <div v-if="quiz" class="q-quiz-info">
           <p><strong>{{ quiz.title }}</strong></p>

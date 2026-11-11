@@ -19,10 +19,51 @@ const SKIP_DIRS = new Set([
 // ToastHost.vue ĐƯỢC PHÉP dùng { toasts, remove } (không trùng tên biến khác).
 const ALLOWED_FILES = new Set(['frontend/src/components/ToastHost.vue']);
 
+// Các file view có tham số route (router khai báo :id nhưng view đọc tên prop khác -> vi phạm).
+const VIEW_DIRS = ['frontend/src/views/teacher', 'frontend/src/views/student'];
+
 function scanFile(absPath, relPath) {
   const code = readFileSync(absPath, 'utf8');
   const findings = [];
   const lines = code.split('\n');
+  const isView = VIEW_DIRS.some((d) => relPath.startsWith(d));
+
+  // Trích tên prop khai báo qua defineProps(['...', '...']) hoặc defineProps({ ... })
+  const propNames = new Set();
+  const mProps = code.match(/defineProps\s*\(\s*\[([^\]]*)\]/);
+  if (mProps) {
+    for (const p of mProps[1].split(',')) {
+      const name = p.trim().replace(/['"]/g, '');
+      if (name) propNames.add(name);
+    }
+  }
+  const mPropsObj = code.match(/defineProps\s*\(\s*\{([^}]*)\}/);
+  if (mPropsObj) {
+    for (const part of mPropsObj[1].split(',')) {
+      const name = part.trim().split(':')[0].replace(/['"]/g, '');
+      if (name) propNames.add(name);
+    }
+  }
+
+  // Trích tên tham số route được ĐỌC: route.params.<tên> hoặc params.<tên>
+  const readParams = new Set();
+  for (const rm of code.matchAll(/route\.params\.([a-zA-Z_]\w*)/g)) readParams.add(rm[1]);
+  for (const rm of code.matchAll(/\bparams\.([a-zA-Z_]\w*)/g)) readParams.add(rm[1]);
+
+  if (isView && readParams.size > 0) {
+    // Nếu đọc params.<tên> mà tên đó không có trong prop khai báo -> ngắt khớp
+    for (const p of readParams) {
+      if (!propNames.has(p)) {
+        findings.push({
+          line: 1,
+          label: 'route-param-mismatch',
+          snippet: `đọc params.${p} nhưng props khai báo: ${[...propNames].join(', ') || '(không có)'}`,
+        });
+        break; // một file chỉ báo 1 lần
+      }
+    }
+  }
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
@@ -84,6 +125,6 @@ if (results.length > 0) {
   console.error(`\nTổng số vi phạm: ${results.length}`);
   process.exit(1);
 } else {
-  console.log('SẠCH: không vi phạm quy ước toast trong frontend/src.');
+  console.log('SẠCH: không vi phạm quy ước toast và route-param trong frontend/src.');
   process.exit(0);
 }

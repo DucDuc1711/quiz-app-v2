@@ -10,7 +10,7 @@ const auth = useAuthStore()
 const toast = useToast()
 auth.init()
 
-const isTeacherZone = computed(() => router.currentRoute.value.path.startsWith('/teacher'))
+const isTeacher = computed(() => auth.isAuthenticated && auth.isTeacher)
 
 const userLabel = computed(() => {
   if (!auth.user) return null
@@ -49,8 +49,8 @@ function logout() {
         <div class="q-brand" @click="router.push('/')"><span class="q-mark">Q</span>uiz App</div>
         <nav class="q-nav-links">
           <a class="q-btn q-btn-outline" :class="{ 'q-btn-primary': $route.path === '/' }" @click="router.push('/')">Trang chủ</a>
-          <a v-if="isTeacherZone && auth.isAuthenticated" class="q-btn q-btn-outline" @click="router.push({ name: 'teacher' })">Bộ đề của tôi</a>
-          <a v-if="isTeacherZone && auth.isAuthenticated" class="q-btn q-btn-outline" @click="router.push({ name: 'teacher-library' })">Thư viện</a>
+          <a v-if="isTeacher" class="q-btn q-btn-outline" @click="router.push({ name: 'teacher' })">Bộ đề của tôi</a>
+          <a v-if="isTeacher" class="q-btn q-btn-outline" @click="router.push({ name: 'teacher-library' })">Thư viện</a>
           <span v-if="auth.isAuthenticated" class="q-text-soft">{{ userLabel }}</span>
           <a v-if="auth.isAuthenticated" class="q-btn q-btn-danger" @click="logout">Đăng xuất</a>
           <a v-if="!auth.isAuthenticated" class="q-btn q-btn-outline" @click="router.push('/teacher/login')">Đăng nhập giáo viên</a>
@@ -66,7 +66,7 @@ function logout() {
       </router-view>
     </main>
     <footer class="q-footer">
-      Quiz App &#8212; demo thi trắc nghiệm &middot; chạy local trên máy tính
+      Quiz App &#8212; demo thi trắc nghiệm
     </footer>
   </div>
 </template>

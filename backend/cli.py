@@ -54,16 +54,33 @@ def register_cli(app):
         click.echo(f"Đã tạo admin: {username} ({email})")
 
     @app.cli.command("seed-samples")
+    @click.option("--reset", is_flag=True, default=False, help="Xóa các bộ đề mẫu của admin rồi seed lại.")
     @with_appcontext
-    def seed_samples():
-        """Tao 2 bo de mau chu admin, is_public=True, co ma tham gia."""
+    def seed_samples(reset):
+        """Tạo 2 bộ đề mẫu cho admin, is_public=True, có mã tham gia."""
         admin = User.query.filter_by(role="admin").first()
         if not admin:
             click.echo("Chưa có admin. Chạy flask create-admin trước.")
             return
 
-        if Quiz.query.filter_by(title="Lap trinh Python co ban").first():
-            click.echo("Dữ liệu mẫu đã được seed trước đó. Không nhận nữa.")
+        SAMPLE_TITLES = ["Lập trình Python cơ bản", "Kiến thức chung vui Việt"]
+
+        if reset:
+            # Xóa TẤT CẢ bộ đề mẫu do admin sở hữu (không chỉ 2 tiêu đề mẫu).
+            # Khi xóa, đặt source_quiz_id = NULL cho các bản sao của giáo viên
+            # để không vỡ khóa ngoại; bản sao của giáo viên giữ nguyên.
+            samples = Quiz.query.filter_by(owner_id=admin.id).all()
+            for q in samples:
+                Quiz.query.filter(Quiz.source_quiz_id == q.id).update(
+                    {Quiz.source_quiz_id: None}, synchronize_session=False
+                )
+                db.session.delete(q)
+            db.session.commit()
+            click.echo(f"Đã xóa {len(samples)} bộ đề mẫu cũ (bản sao của giáo viên giữ nguyên).")
+
+        if Quiz.query.filter_by(title="Lập trình Python cơ bản").first() or \
+           Quiz.query.filter_by(title="Kiến thức chung vui Việt").first():
+            click.echo("Dữ liệu mẫu đã được seed trước đó. Chạy --reset để seed lại.")
             return
 
         def _create_quiz(title, description, questions_data):
@@ -72,7 +89,7 @@ def register_cli(app):
                 owner_id=admin.id,
                 title=title,
                 description=description,
-                tags="mau, hoc tap",
+                tags="mẫu, học tập",
                 access_code=access_code,
                 is_open=True,
                 question_time=30,
@@ -101,46 +118,44 @@ def register_cli(app):
                     db.session.add(choice)
 
         _create_quiz(
-            "Lap trinh Python co ban",
+            "Lập trình Python cơ bản",
+            "Bộ đề mẫu về lập trình Python cho người mới bắt đầu.",
             [
-                ("single", "Cach khai bao bien trong Python la gi?",
-            [("Bien = gia tri", True), ("kieu bien = gia tri", False), ("var bien = gia tri", False), ("let bien = gia tri", False)]),
-                ("single", "Ham len() trong Python dung lam gi?",
-            [("Tra ve do dai chuoi/danh sach", True), ("Phep nhan hai so", False), ("Sap xep danh sach", False), ("Xoa phan tu khoi danh sach", False)]),
-                ("multiple", "Cau truc du lieu nao sau day la co thu tu?",
-            [("Danh sach (list)", True), ("Bo (tuple)", True), ("Tap hop (set)", False), ("Tu dien (dict)", True)]),
-                ("true_false", "Python la ngon ngu lap trinh duoc dien giai.",
-            [("Dung", True), ("Sai", False)]),
-                ("single", "Tu khoa nao duoc dung de dinh dang ham trong Python?",
-            [("def", True), ("function", False), ("fun", False), ("define", False)]),
-                ("multiple", "Cach xu ly ngoai le trong Python la gi?",
-            [("try...except", True), ("if...else", False), ("try...catch", False), ("raise", True)]),
-                ("true_false", "Chi so cua danh sach trong Python bat dau tu 1.",
-            [("Dung", False), ("Sai", True)]),
-                ("single", "Ham nao duoc dung de xuat du lieu ra man hinh trong Python?",
-            [("print()", True), ("input()", False), ("scan()", False), ("show()", False)]),
+                ("single", "Cách khai báo biến trong Python là gì?",
+                    [("Biến = giá trị", True), ("kiểu biến = giá trị", False), ("var biến = giá trị", False), ("let biến = giá trị", False)]),
+                ("single", "Hàm len() trong Python dùng làm gì?",
+                    [("Trả về độ dài chuỗi/danh sách", True), ("Phép nhân hai số", False), ("Sắp xếp danh sách", False), ("Xóa phần tử khỏi danh sách", False)]),
+                ("multiple", "Cấu trúc dữ liệu nào sau đây là có thứ tự?",
+                    [("Danh sách (list)", True), ("Bộ (tuple)", True), ("Tập hợp (set)", False), ("Từ điển (dict)", True)]),
+                ("true_false", "Python là ngôn ngữ lập trình được dịch giai.", [("Đúng", True), ("Sai", False)]),
+                ("single", "Từ khóa nào được dùng để định nghĩa hàm trong Python?",
+                    [("def", True), ("function", False), ("fun", False), ("define", False)]),
+                ("multiple", "Cách xử lý ngoại lệ trong Python là gì?",
+                    [("try...except", True), ("if...else", False), ("try...catch", False), ("raise", True)]),
+                ("true_false", "Chỉ số của danh sách trong Python bắt đầu từ 1.", [("Đúng", False), ("Sai", True)]),
+                ("single", "Hàm nào được dùng để xuất dữ liệu ra màn hình trong Python?",
+                    [("print()", True), ("input()", False), ("scan()", False), ("show()", False)]),
             ],
         )
 
         _create_quiz(
-            "Kien thuc chung vui ve",
+            "Kiến thức chung vui Việt",
+            "Bộ đề kiểm tra kiến thức tổng hợp về Việt Nam.",
             [
-                ("single", "Thanh pho nao la dau cua Viet Nam?",
-            [("Ho Chi Minh", False), ("Ha Noi", True), ("Da Nang", False), ("Can Tho", False)]),
-                ("single", "Con vat nao co thay da cao nhat the gioi?",
-            [("Tu tinh", False), ("Hirassai", True), ("Vo cuong", False), ("Vo cuong", False)]),
-                ("multiple", "Quoc gia nao nam o chau Au?",
-            [("Phap", True), ("Duc", True), ("Trung Quoc", False), ("Nhat Ban", False)]),
-                ("true_false", "Mat troi la sao trong he mat troi.",
-            [("Dung", True), ("Sai", False)]),
-                ("single", "Khoa hoc nao khiam sat ca cuoc song?",
-            [("Sinh hoc", True), ("Vat li", False), ("Hoa hoc", False), ("Dia ly", False)]),
-                ("multiple", "Cach bao ve moi truong la gi?",
-            [("Tap thai", True), ("Tiet kiem nang luong", True), ("Thai thai nhiua", False), ("Bo rung doc lap", False)]),
-                ("true_false", "Nuoc kep co mau xanh la cay.",
-            [("Dung", False), ("Sai", True)]),
-                ("single", "Cach nao de chia het cho 3?",
-            [("Tong chu so chia het cho 3", True), ("Chu so cuoi la 0", False), ("Lai so chan", False), ("Lai so le", False)]),
+                ("single", "Thành phố nào là thủ đô của Việt Nam?",
+                    [("Hồ Chí Minh", False), ("Hà Nội", True), ("Đà Nẵng", False), ("Cần Thơ", False)]),
+                ("single", "Con vật nào có chiều cao cao nhất thế giới?",
+                    [("Tư tinh", False), ("Hươu cao cổ", True), ("Vo cuồng", False), ("Vo cuồng", False)]),
+                ("multiple", "Quốc gia nào nằm ở châu Âu?",
+                    [("Pháp", True), ("Đức", True), ("Trung Quốc", False), ("Nhật Bản", False)]),
+                ("true_false", "Mặt trời là sao trong hệ mặt trời.", [("Đúng", True), ("Sai", False)]),
+                ("single", "Khoa học nào khiam sát ca cuộc sống?",
+                    [("Sinh học", True), ("Vật lý", False), ("Hóa học", False), ("Địa lý", False)]),
+                ("multiple", "Cách bảo vệ môi trường là gì?",
+                    [("Sử dụng túi nhựa", True), ("Tiết kiệm năng lượng", True), ("Bỏ rừng", False), ("Thải thải nhựa", False)]),
+                ("true_false", "Nước biển có màu xanh lá cây.", [("Đúng", False), ("Sai", True)]),
+                ("single", "Cách nào để chia hết cho 3?",
+                    [("Tổng chữ số chia hết cho 3", True), ("Chữ số cuối là 0", False), ("Số chẵn", False), ("Số lẻ", False)]),
             ],
         )
 

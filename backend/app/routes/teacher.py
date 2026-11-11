@@ -141,6 +141,8 @@ def get_quiz(quiz_id):
         "source_quiz_id": quiz.source_quiz_id,
         "created_at": quiz.created_at.isoformat() if quiz.created_at else None,
         "updated_at": quiz.updated_at.isoformat() if quiz.updated_at else None,
+        "question_count": len(quiz.questions),
+        "attempt_count": len(quiz.attempts),
         "questions": questions_data
     }), 200
 

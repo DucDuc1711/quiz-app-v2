@@ -5,7 +5,7 @@ import { teacherApi } from '@/api/teacher'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 const props = defineProps(['questions', 'quizId', 'locked'])
-const emit = defineEmits(['edit', 'delete', 'reorder'])
+const emit = defineEmits(['edit', 'delete', 'reorder', 'failed'])
 
 const toast = useToast()
 const deleteDialog = ref(false)
@@ -33,6 +33,7 @@ async function move(dir, idx) {
       ? e.response.data.error
       : 'Không đổi thứ tự câu hỏi.'
     toast.error(msg, 'Thất bại')
+    emit('failed')
   }
 }
 
@@ -54,6 +55,7 @@ async function confirmDelete() {
       ? e.response.data.error
       : 'Không xóa được câu hỏi.'
     toast.error(msg, 'Xóa thất bại')
+    emit('failed')
   } finally {
     deleteTarget.value = null
   }
