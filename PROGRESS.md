@@ -34,7 +34,23 @@
   - Test: test_play.py 30 pass (test_join_device_multiple_retakes mới), test_teacher.py 25 pass, test_auth.py 14 pass, test_admin.py 13 pass, test_codes.py 2, test_models.py 2, test_flow_p3.py (4), test_p3_fixes.py (2), test_uploads.py (7) = 99 test
   - verify_teacher.py PASS, verify_flow.py PASS
 - [x] Chặng C1 (mục 7): Vitest — 8 file test (axios.test.js, useToast.test.js, auth.test.js, routerGuard.test.js, LoginView.test.js, RegisterView.test.js, DashboardView.test.js, PasswordField.test.js), 29 test pass; npx vitest run --reporter=dot PASS; npm run build PASS; pytest PASS; verify_flow.py PASS; verify_teacher.py PASS; node scripts/check_vietnamese.mjs PASS
-## Chặng C2 (mục 8-9): Playwright e2e
+## Chàng C2 (mục 8-9): Playwright e2e — BLOCKED
+
+### Nguyên nhân chặn:
+- Google Chrome KHÔNG được cài trên máy (đã kiểm tra C:\Program Files\Google\Chrome, C:\Program Files (x86)\Google\Chrome, C:\Users\nuyan\AppData\Local\Google\Chrome — không tìm thấy chrome.exe).
+- Không có Microsoft Edge cũng.
+- npx playwright install chromium BỊ CHẶN CDN → không được tải thêm (theo yêu cầu).
+- playwright.config.js đã được cập nhật: `channel: 'chrome'` trong use và projects (đúng yêu cầu mục 7).
+- Ngoài ra, Flask backend trên Windows không thể mở SQLite file `instance/e2e.db` (lỗi `sqlalchemy.exc.OperationalError: unable to open database file`) khi chạy qua playwright webServer. Cần fix path DATABASE_URL trên Windows.
+
+### Việc đã làm cho Chàng C:
+- Đã cập nhật playwright.config.js: thêm `channel: 'chrome'` vào `use` và `projects[0].use`.
+- Đã kiểm tra e2e spec file tại `frontend/tests/e2e/quiz-app.spec.js` (10 test cases).
+
+### Để tiếp tục (khi có Chrome):
+- Cài Google Chrome hoặc Edge (Chromium-based).
+- Fix DATABASE_URL path cho Windows trong playwright.config.js (dùng đường dẫn tuyệt đối hoặc `sqlite:////`).
+- Chạy `npm run test:e2e` và đợi xanh.
 
 ## Chặng A (mục 1-5) — ĐỢT 3 (HOÀN TẤT)
 - [x] Mục 1: Quy ước toast — const toast = useToast() thống nhất, chỉ ToastHost.vue destructure { toasts, remove }
