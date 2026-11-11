@@ -1,7 +1,7 @@
 # QUIZ APP v2 — ĐẶC TẢ DỰ ÁN
 
 ## 1. Mục tiêu
-Web thi trắc nghiệm cho lớp học. Học sinh không cần tài khoản: nhập mã bộ đề và tên (tên nhập tự do, được phép trùng) rồi làm bài. Mỗi câu có đồng hồ riêng, chọn rồi bấm Chốt! (hoặc hết giờ) thì thấy đúng/sai, cuối bài xem điểm và bảng xếp hạng đầy đủ. Giáo viên tự đăng ký, tạo bộ đề, sinh mã tham gia, xem kết quả. Admin là chủ hệ thống (duy nhất một tài khoản, tạo bằng lệnh CLI) quản lý mọi thứ tại /admin. Ưu tiên giao diện máy tính (bản demo chạy local); vẫn phải hiển thị tốt trên điện thoại.
+Web thi trắc nghiệm cho lớp học. Học sinh không cần tài khoản: nhập mã bộ đề và tên (tên nhập tự do, được phép trùng) rồi làm bài. Mỗi câu có đồng hồ riêng, chọn rồi bấm Chốt! (hoặc hết giờ) thì thấy đúng/sai, cuối bài xem điểm và bảng xếp hạng đầy đủ. Giáo viên tự đăng ký, tạo bộ đề, sinh mã tham gia, xem kết quả. Admin là chủ hệ thống (duy nhất một tài khoản, tạo bằng lệnh CLI) quản lý mọi thứ tại /admin Giao diện /admin hoãn lại, chỉ có backend API. Ưu tiên giao diện máy tính (bản demo chạy local); vẫn phải hiển thị tốt trên điện thoại.
 
 ## 2. Công nghệ
 - Backend: Python 3.10+, Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-JWT-Extended, Flask-CORS, Flask-Limiter, python-dotenv, openpyxl, pytest, SQLite.
@@ -136,7 +136,7 @@ frontend/
 ### Routes
 - Học sinh: / (nhập mã và tên), /join/:code (mã điền sẵn), /play/:token, /result/:token.
 - Giáo viên: /teacher/login, /teacher/register, /teacher (danh sách bộ đề), /teacher/quizzes/:id (soạn bộ đề), /teacher/quizzes/:id/results, /teacher/library, /teacher/library/:id.
-- Admin: /admin/login, /admin, /admin/teachers, /admin/quizzes, /admin/attempts.
+- Admin: /admin/login, /admin, /admin/teachers, /admin/quizzes, /admin/attempts (HOÃN, phát triển sau).
 - Trang 404.
 
 ### Màn làm bài
