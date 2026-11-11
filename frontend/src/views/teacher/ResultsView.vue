@@ -9,7 +9,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 
 const router = useRouter()
-const { success, error } = useToast()
+const toast = useToast()
 
 const props = defineProps(['quizId'])
 
@@ -23,6 +23,8 @@ let deleteTarget = ref(null)
 const sortKey = ref(null)
 const sortDir = ref('asc')
 const searchName = ref('')
+
+onMounted(load)
 
 async function load() {
   loading.value = true
@@ -93,7 +95,7 @@ async function confirmDeleteAttempt() {
   deleteDialog.value = false
   try {
     await teacherApi.deleteAttempt(id)
-    success('Đã xóa lượt làm.', 'Xóa thành công')
+    toast.success('Đã xóa lượt làm.', 'Xóa thành công')
     await load()
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error
@@ -139,8 +141,8 @@ onMounted(() => { load() })
       <LoadingState message="Đang tải kết quả..." />
     </div>
 
-    <div v-else-if="error" style="display:flex;justify-content:center;padding:40px 0;">
-      <ErrorState :message="error" :retry="load" back-label="Về trình soạn" :back-route="{ name: 'teacher-quiz', params: { id: quizId } }" />
+    <div v-else-if="loadError" style="display:flex;justify-content:center;padding:40px 0;">
+      <ErrorState :message="loadError" :retry="load" back-label="Về trình soạn" back-route="teacher-quiz" />
     </div>
 
     <div v-else>

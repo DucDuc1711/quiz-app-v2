@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "lint:conv": "node ../scripts/check_vietnamese.mjs && node ../scripts/check_conventions.mjs"
   },
   "dependencies": {
     "@fontsource/noto-sans": "^5.3.0",

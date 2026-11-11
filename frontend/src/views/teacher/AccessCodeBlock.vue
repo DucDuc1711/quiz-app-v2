@@ -8,7 +8,7 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 const props = defineProps(['code', 'quizId'])
 const emit = defineEmits(['code-changed'])
 
-const { success, error } = useToast()
+const toast = useToast()
 
 const showFullscreen = ref(false)
 const regenDialog = ref(false)
@@ -25,7 +25,7 @@ async function copyText(text, label) {
   copying.value = true
   try {
     await navigator.clipboard.writeText(text)
-    success('Đã sao chép ' + label + '.', 'Sao chép')
+    toast.success('Đã sao chép ' + label + '.', 'Sao chép')
   } catch (e) {
     const ta = document.createElement('textarea')
     ta.value = text
@@ -35,9 +35,9 @@ async function copyText(text, label) {
     ta.select()
     try {
       document.execCommand('copy')
-      success('Đã sao chép ' + label + '.', 'Sao chép')
+      toast.success('Đã sao chép ' + label + '.', 'Sao chép')
     } catch (_) {
-      error('Không thể sao chép. Vui lòng sao chép thủ công.', 'Sao chép')
+      toast.error('Không thể sao chép. Vui lòng sao chép thủ công.', 'Sao chép')
     }
     document.body.removeChild(ta)
   } finally {
@@ -60,12 +60,12 @@ async function regenerateCode() {
     const res = await teacherApi.regenerateCode(props.quizId)
     const newCode = res.data.access_code
     emit('code-changed', newCode)
-    success('Đã sinh mã mới: ' + newCode, 'Mã mới')
+    toast.success('Đã sinh mã mới: ' + newCode, 'Mã mới')
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error
       ? e.response.data.error
       : 'Không sinh được mã mới.'
-    error(msg, 'Sinh mã thất bại')
+    toast.error(msg, 'Sinh mã thất bại')
   }
 }
 

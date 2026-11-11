@@ -7,7 +7,7 @@ import ToastHost from '@/components/ToastHost.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
-const { error: toastError } = useToast()
+const toast = useToast()
 auth.init()
 
 const isTeacherZone = computed(() => router.currentRoute.value.path.startsWith('/teacher'))
@@ -26,7 +26,7 @@ onUnmounted(() => {
 
 function onAuthLogout(e) {
   const role = e.detail && e.detail.role
-  toastError('Phiên đăng nhập đã hết hạn.', 'Phiên hết hạn')
+  toast.error('Phiên đăng nhập đã hết hạn.', 'Phiên hết hạn')
   const to = role === 'admin'
     ? '/admin/login'
     : role === 'teacher'

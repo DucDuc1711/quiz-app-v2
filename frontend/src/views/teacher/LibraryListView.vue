@@ -8,7 +8,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 
 const router = useRouter()
-const { toast } = useToast()
+const toast = useToast()
 
 const quizzes = ref([])
 const total = ref(0)
@@ -139,9 +139,9 @@ onMounted(() => { load() })
           <h3>{{ q.title }}</h3>
           <p>{{ q.description || '(không có mô tả)' }}</p>
           <div class="q-library-meta">
-            <span>{{ q.owner || '—' }}</span>
+            <span>Tác giả: {{ q.owner || '—' }}</span>
             <span>•</span>
-            <span>Mã: {{ q.access_code }}</span>
+            <span>{{ q.question_count || 0 }} câu hỏi</span>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
             <span v-for="t in (q.tags || '').split(',').map(x => x.trim()).filter(x => x)" :key="t" class="q-tag-chip">{{ t }}</span>

@@ -6,7 +6,7 @@ import { teacherApi } from '@/api/teacher'
 const props = defineProps(['quizId', 'question', 'visible'])
 const emit = defineEmits(['save', 'cancel', 'image-added'])
 
-const { toast } = useToast()
+const toast = useToast()
 
 const isEdit = computed(() => !!props.question)
 

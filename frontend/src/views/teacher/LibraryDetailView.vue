@@ -9,7 +9,7 @@ import ErrorState from '@/components/ErrorState.vue'
 
 const router = useRouter()
 const route = useRoute()
-const { success, error } = useToast()
+const toast = useToast()
 
 const quiz = ref(null)
 const loading = ref(false)
@@ -43,7 +43,7 @@ async function onClone() {
   try {
     const res = await teacherApi.cloneQuiz(route.params.id)
     const id = res.data.quiz.id
-    success('Đã sao chép bộ đề.', 'Thành công')
+    toast.success('Đã sao chép bộ đề.', 'Thành công')
     router.push({ name: 'teacher-quiz', params: { id } })
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error
@@ -80,7 +80,6 @@ onMounted(() => { load() })
         <p v-if="quiz.description" style="color:var(--q-text-soft);margin-bottom:12px;">{{ quiz.description }}</p>
         <div class="q-library-meta" style="margin-bottom:8px;">
           <span>Tác giả: {{ quiz.owner || '—' }}</span>
-          <span style="margin-left:12px;">Mã: <b>{{ quiz.access_code }}</b></span>
           <span style="margin-left:12px;">{{ quiz.questions?.length || 0 }} câu hỏi</span>
           <span v-if="quiz.tags" style="margin-left:12px;">Thẻ: {{ quiz.tags }}</span>
         </div>

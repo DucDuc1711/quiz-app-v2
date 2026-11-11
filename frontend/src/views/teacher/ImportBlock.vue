@@ -1,16 +1,18 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useToast } from '@/composables/useToast'
 import { teacherApi } from '@/api/teacher'
 
 const props = defineProps(['quizId'])
 const emit = defineEmits(['imported'])
 
-const { success, error } = useToast()
+const toast = useToast()
 
 const file = ref(null)
 const loading = ref(false)
 const result = ref(null)
+
+const hasFile = computed(() => !!file.value)
 
 function handleFileChange(e) {
   file.value = e.target.files[0] || null
@@ -36,7 +38,7 @@ async function onImport() {
   try {
     const res = await teacherApi.importQuestions(props.quizId, file.value)
     result.value = res.data
-    success('Nhập ' + res.data.imported + ' câu hỏi. ' + (res.data.errors && res.data.errors.length ? res.data.errors.length + ' dòng lỗi.' : 'Không có lỗi.'), 'Nhập thành công')
+    toast.success('Nhập ' + res.data.imported + ' câu hỏi. ' + (res.data.errors && res.data.errors.length ? res.data.errors.length + ' dòng lỗi.' : 'Không có lỗi.'), 'Nhập thành công')
     emit('imported')
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error
@@ -55,9 +57,9 @@ async function onImport() {
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
       <button class="q-btn q-btn-outline" :disabled="loading" @click="downloadTemplate">Tải file mẫu</button>
       <input type="file" accept=".xlsx,.csv" @change="handleFileChange" style="display:none;" ref="fileInput" />
-      <button class="q-btn q-btn-outline" :disabled="loading || !file.value" @click="() => { const el = $refs.fileInput; if(el) el.click() }">Chọn file</button>
-      <span v-if="file.value" style="font-size:0.85rem;color:var(--q-text-soft);">{{ file.value.name }}</span>
-      <button class="q-btn q-btn-primary" :disabled="loading || !file.value" @click="onImport">
+      <button class="q-btn q-btn-outline" :disabled="loading || !hasFile" @click="() => { const el = $refs.fileInput; if(el) el.click() }">Chọn file</button>
+      <span v-if="file" style="font-size:0.85rem;color:var(--q-text-soft);">{{ file.name }}</span>
+      <button class="q-btn q-btn-primary" :disabled="loading || !hasFile" @click="onImport">
         {{ loading ? 'Đang nhập...' : 'Nhập câu hỏi' }}
       </button>
     </div>

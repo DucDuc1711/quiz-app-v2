@@ -8,7 +8,7 @@ import PasswordField from '@/components/PasswordField.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
-const { success, error } = useToast()
+const toast = useToast()
 
 const USERNAME_RE = /^[a-zA-Z0-9_.]{4,30}$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -87,7 +87,7 @@ async function onRegister() {
         ? e.response.data.error
         : 'Đăng ký không thành công. Vui lòng thử lại.'
       fieldErrors.value = { _form: msg }
-      error(msg, 'Đăng ký không thành công')
+      toast.error(msg, 'Đăng ký không thành công')
       loading.value = false
       return
     }
@@ -97,7 +97,7 @@ async function onRegister() {
     try {
       auth.setAuth(token, user)
       try {
-        success('Đăng ký thành công.', 'Chào mừng')
+        toast.success('Đăng ký thành công.', 'Chào mừng')
       } catch (_) {}
       router.push('/teacher')
     } finally {

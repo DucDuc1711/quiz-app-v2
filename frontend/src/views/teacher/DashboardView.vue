@@ -11,7 +11,7 @@ import ErrorState from '@/components/ErrorState.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
-const { success, error } = useToast()
+const toast = useToast()
 
 const quizzes = ref([])
 const loading = ref(false)
@@ -52,7 +52,7 @@ async function load() {
       ? e.response.data.error
       : 'Không tải được danh sách bộ đề.'
     loadError.value = msg
-    error(msg, 'Lỗi tải danh sách')
+    toast.error(msg, 'Lỗi tải danh sách')
   } finally {
     loading.value = false
   }
@@ -60,20 +60,20 @@ async function load() {
 
 async function onCreate() {
   const t = newTitle.value.trim()
-  if (!t) { error('Vui lòng nhập tiêu đề bộ đề.', 'Tiêu đề bắt buộc'); return }
+  if (!t) { toast.error('Vui lòng nhập tiêu đề bộ đề.', 'Tiêu đề bắt buộc'); return }
   saving.value = true
   try {
     const res = await teacherApi.createQuiz({ title: t })
     const id = res.data.quiz.id
     showCreateModal.value = false
     newTitle.value = ''
-    success('Đã tạo bộ đề.', 'Thành công')
+    toast.success('Đã tạo bộ đề.', 'Thành công')
     router.push({ name: 'teacher-quiz', params: { id } })
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error
       ? e.response.data.error
       : 'Không tạo được bộ đề.'
-    error(msg, 'Tạo thất bại')
+    toast.error(msg, 'Tạo thất bại')
   } finally {
     saving.value = false
   }
@@ -90,13 +90,13 @@ async function confirmDelete() {
   deleteDialog.value = false
   try {
     await teacherApi.deleteQuiz(q.id)
-    success('Đã xóa bộ đề "' + q.title + '".', 'Xóa thành công')
+    toast.success('Đã xóa bộ đề "' + q.title + '".', 'Xóa thành công')
     await load()
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error
       ? e.response.data.error
       : 'Không xóa được bộ đề.'
-    error(msg, 'Xóa thất bại')
+    toast.error(msg, 'Xóa thất bại')
   } finally {
     deleteTarget.value = null
   }
@@ -107,12 +107,12 @@ async function toggleQuizOpen(quiz) {
   try {
     await teacherApi.updateQuiz(quiz.id, { is_open: !quiz.is_open })
     quiz.is_open = !quiz.is_open
-    success(quiz.is_open ? 'Đã mở nhận bài.' : 'Đã đóng nhận bài.', 'Cập nhật trạng thái')
+    toast.success(quiz.is_open ? 'Đã mở nhận bài.' : 'Đã đóng nhận bài.', 'Cập nhật trạng thái')
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error
       ? e.response.data.error
       : 'Không thay đổi trạng thái.'
-    error(msg, 'Thất bại')
+    toast.error(msg, 'Thất bại')
     await load()
   } finally {
     toggleOpen.value = null
@@ -149,11 +149,12 @@ onMounted(() => { load() })
         </div>
       </div>
 
-      <div v-if="filtered().length === 0" style="display:flex;justify-content:center;padding:40px 0;">
+      <div v-if="filtered().length === 0" style="display:flex;justify-content:center;padding:40px 0;flex-direction:column;align-items:center;">
         <EmptyState
           :message="search.trim() ? 'Không tìm thấy bộ đề nào phù hợp.' : 'Chưa có bộ đề nào.'"
           :hint="emptyHint"
         />
+        <button class="q-btn q-btn-primary" @click="showCreateModal = true" style="margin-top:24px;">Tạo bộ đề mới</button>
       </div>
 
       <div v-else class="q-quiz-grid">
@@ -169,12 +170,12 @@ onMounted(() => { load() })
             <span>{{ q.is_open ? 'Đang mở' : 'Đóng' }} &#8226; {{ q.is_public ? 'Công khai' : 'Riêng tư' }}</span>
           </div>
           <div class="q-quiz-actions">
-            <button class="q-btn q-btn-outline" @click="router.push({ name: 'teacher-quiz', params: { id: q.id } })">Soạn</button>
-            <button class="q-btn q-btn-outline" @click="router.push({ name: 'teacher-quiz-results', params: { id: q.id } })">Kết quả</button>
-            <button class="q-btn q-btn-outline" @click="toggleQuizOpen(q)" :disabled="toggleOpen === q.id">
+            <button class="q-btn q-btn-outline" @click.stop="router.push({ name: 'teacher-quiz', params: { id: q.id } })">Soạn</button>
+            <button class="q-btn q-btn-outline" @click.stop="router.push({ name: 'teacher-quiz-results', params: { id: q.id } })">Kết quả</button>
+            <button class="q-btn q-btn-outline" @click.stop="toggleQuizOpen(q)" :disabled="toggleOpen === q.id">
               {{ toggleOpen === q.id ? '...' : (q.is_open ? 'Đóng nhận bài' : 'Mở nhận bài') }}
             </button>
-            <button class="q-btn q-btn-outline" @click="openDelete(q)">Xóa</button>
+            <button class="q-btn q-btn-outline" @click.stop="openDelete(q)">Xóa</button>
           </div>
         </div>
       </div>
@@ -202,7 +203,7 @@ onMounted(() => { load() })
             placeholder="Tiêu đề bộ đề"
             @keydown.enter="onCreate"
           />
-          <button class="q-btn q-btn-primary" :disabled="saving || !newTitle.value.trim()" @click="onCreate">
+          <button class="q-btn q-btn-primary" :disabled="saving || !newTitle.trim()" @click="onCreate">
             {{ saving ? 'Đang tạo...' : 'Tạo' }}
           </button>
           <button class="q-btn q-btn-outline" @click="showCreateModal = false">Hủy</button>

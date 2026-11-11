@@ -6,7 +6,7 @@ import { teacherApi } from '@/api/teacher'
 const props = defineProps(['quiz'])
 const emit = defineEmits(['saved', 'code-changed'])
 
-const { success, error } = useToast()
+const toast = useToast()
 
 const form = ref({
   title: props.quiz.title || '',
@@ -55,7 +55,7 @@ async function onSave() {
     }
     await teacherApi.updateQuiz(props.quiz.id, payload)
     unsaved.value = false
-    success('Đã lưu cài đặt bộ đề.', 'Lưu thành công')
+    toast.success('Đã lưu cài đặt bộ đề.', 'Lưu thành công')
     emit('saved', payload)
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error

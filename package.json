@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "lint:conv": "node scripts/check_conventions.mjs && node scripts/check_vietnamese.mjs",
+    "lint:toast": "node scripts/check_conventions.mjs"
+  },
   "devDependencies": {
     "@playwright/test": "^1.65.0"
   }

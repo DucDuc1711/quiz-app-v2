@@ -15,7 +15,7 @@ import ImportBlock from './ImportBlock.vue'
 
 const route = useRoute()
 const router = useRouter()
-const { success, error } = useToast()
+const toast = useToast()
 
 const quiz = ref(null)
 const loading = ref(false)
@@ -43,7 +43,7 @@ async function load() {
       ? e.response.data.error
       : 'Không tải được bộ đề.'
     loadError.value = msg
-    error(msg, 'Lỗi tải')
+    toast.error(msg, 'Lỗi tải')
   } finally {
     loading.value = false
   }
@@ -85,20 +85,20 @@ async function onImported() {
 
 async function onCodeChanged(newCode) {
   quiz.value.access_code = newCode
-  success('Mã tham gia đã cập nhật: ' + newCode, 'Mã mới')
+  toast.success('Mã tham gia đã cập nhật: ' + newCode, 'Mã mới')
 }
 
 async function deleteQuiz() {
   deleteQuizDialog.value = false
   try {
     await teacherApi.deleteQuiz(quiz.value.id)
-    success('Đã xóa bộ đề.', 'Xóa thành công')
+    toast.success('Đã xóa bộ đề.', 'Xóa thành công')
     router.push({ name: 'teacher' })
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error
       ? e.response.data.error
       : 'Không xóa được bộ đề.'
-    error(msg, 'Xóa thất bại')
+    toast.error(msg, 'Xóa thất bại')
   }
 }
 
@@ -106,13 +106,13 @@ async function deleteAllAttempts() {
   deleteAttemptsDialog.value = false
   try {
     await teacherApi.deleteQuizAttempts(quiz.value.id)
-    success('Đã xóa toàn bộ kết quả làm bài. Bạn có thể chỉnh sửa câu hỏi lại.', 'Xóa kết quả')
+    toast.success('Đã xóa toàn bộ kết quả làm bài. Bạn có thể chỉnh sửa câu hỏi lại.', 'Xóa kết quả')
     await load()
   } catch (e) {
     const msg = e.response && e.response.data && e.response.data.error
       ? e.response.data.error
       : 'Không xóa được kết quả.'
-    error(msg, 'Xóa thất bại')
+    toast.error(msg, 'Xóa thất bại')
   }
 }
 
@@ -138,8 +138,8 @@ onBeforeUnmount(() => {
       <LoadingState message="Đang tải bộ đề..." />
     </div>
 
-    <div v-else-if="error" style="display:flex;justify-content:center;padding:40px 0;">
-      <ErrorState :message="error" :retry="load" back-label="Về danh sách" back-route="teacher" />
+    <div v-else-if="loadError" style="display:flex;justify-content:center;padding:40px 0;">
+      <ErrorState :message="loadError" :retry="load" back-label="Về danh sách" back-route="teacher" />
     </div>
 
     <div v-else-if="quiz" class="q-teacher-page">

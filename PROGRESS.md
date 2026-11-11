@@ -35,6 +35,24 @@
   - verify_teacher.py PASS, verify_flow.py PASS
 - [x] Chặng C1 (mục 7): Vitest — 8 file test (axios.test.js, useToast.test.js, auth.test.js, routerGuard.test.js, LoginView.test.js, RegisterView.test.js, DashboardView.test.js, PasswordField.test.js), 29 test pass; npx vitest run --reporter=dot PASS; npm run build PASS; pytest PASS; verify_flow.py PASS; verify_teacher.py PASS; node scripts/check_vietnamese.mjs PASS
 ## Chặng C2 (mục 8-9): Playwright e2e
+
+## Chặng A (mục 1-5) — ĐỢT 3 (HOÀN TẤT)
+- [x] Mục 1: Quy ước toast — const toast = useToast() thống nhất, chỉ ToastHost.vue destructure { toasts, remove }
+- [x] Mục 2: Sửa lỗi trình soạn, dashboard, thư viện
+  - Đã thêm nút "Tạo bộ đề mới" vào DashboardView (thiếu nút mở modal)
+  - Đã sửa error → loadError trong ResultsView.vue và QuizEditorView.vue templates
+  - Đã sửa ImportBlock.vue template: file.value → file (Vue auto-unwraps refs trong template)
+  - Đã thêm onMounted(load) vào ResultsView.vue (thiếu gọi load khi mount)
+- [x] Mục 3: Axios và phiên đăng nhập — đã đúng: chỉ bỏ token cho /auth/login, /auth/register, /api/play/*; /api/auth/me và /api/teacher/* có Bearer; auth.init chỉ xóa khi 401 thật, giữ khi lỗi mạng
+- [x] Mục 4: Luật chặn lỗi — scripts/check_conventions.mjs đã tạo, lint:conv đã thêm vào package.json
+- [x] Mục 5: Kiểm tra Chặng A
+  - npm run build: PASS (172 modules, 354ms)
+  - npx vitest run: 58 passed (9 files)
+  - node scripts/check_vietnamese.mjs: PASS
+  - node scripts/check_conventions.mjs: PASS
+  - npm run lint:conv: PASS
+  - pytest: 99 passed
+- [x] Commit: "P5 fix 3A: toast, axios, dashboard, thu vien"
 - Đã cài @playwright/test v1.65.0 (devDependency)
 - Đã tạo playwright.config.js: backend cổng 5100 (DATABASE_URL=sqlite:///instance/e2e.db), frontend cổng 5273 (VITE_API_TARGET=http://127.0.0.1:5100), e2e DB là backend/instance/e2e.db (trong .gitignore)
 - Đã cập nhật vite.config.js: đọc VITE_API_TARGET từ env để proxy /api

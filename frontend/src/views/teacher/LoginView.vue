@@ -9,7 +9,7 @@ import PasswordField from '@/components/PasswordField.vue'
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
-const { success, error } = useToast()
+const toast = useToast()
 
 const redirect = computed(() => route.query.redirect || '/teacher')
 
@@ -54,7 +54,7 @@ async function onLogin() {
       ? e.response.data.error
       : 'Đăng nhập không thành công. Vui lòng thử lại.'
     fieldErrors.value = { _form: msg }
-    error(msg, 'Đăng nhập không thành công')
+    toast.error(msg, 'Đăng nhập không thành công')
     loading.value = false
     return
   }
@@ -63,13 +63,13 @@ async function onLogin() {
   // nên lỗi ở đây không bị báo là "đăng nhập thất bại".
   try {
     if (user && user.role === 'admin') {
-      error('Tài khoản admin vui lòng đăng nhập tại /admin/login', 'Không thể đăng nhập')
+      toast.error('Tài khoản admin vui lòng đăng nhập tại /admin/login', 'Không thể đăng nhập')
       loading.value = false
       return
     }
     auth.setAuth(token, user)
     try {
-      success('Đăng nhập thành công.', 'Chào mừng')
+      toast.success('Đăng nhập thành công.', 'Chào mừng')
     } catch (_) {}
     router.push(redirect.value)
   } finally {

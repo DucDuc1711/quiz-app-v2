@@ -38,8 +38,12 @@ export const useAuthStore = defineStore('auth', {
             this.user = res.data.user
             localStorage.setItem(USER_KEY, JSON.stringify(this.user))
           }
-        } catch (_) {
-          this.clearAuth()
+        } catch (err) {
+          // CHỈ khi 401 thật mới xóa phiên (token hết hạn/không hợp lệ).
+          // Lỗi mạng hoặc 5xx tạm thời thì giữ phiên.
+          if (err.response && err.response.status === 401) {
+            this.clearAuth()
+          }
         }
       }
     },
